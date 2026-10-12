@@ -5,53 +5,55 @@ import { IOtpService } from '../../interfaces/service/auth/IOtpService';
 import { OtpPurpose } from '../../types/auth.types';
 
 export class RedisOtpService implements IOtpService {
-  private readonly otpExpirationSeconds = 300;
-  private readonly resendCooldownSeconds = 60;
+  private readonly _otpExpirationSeconds = 300;
+  private readonly _resendCooldownSeconds = 60;
 
   private getKey(identifier: string, purpose: OtpPurpose): string {
-    return `otp:${purpose}:${identifier}`;
+    return `otp:${purpose.toLowerCase()}:${identifier.trim().toLowerCase()}`;
   }
 
-  private getCooldownKey(identifier: string, purpose: OtpPurpose): string {
-    return `otp:cooldown:${purpose}:${identifier}`;
-  }
-
-  async generateAndStore(
+  private getCooldownKey(
     identifier: string,
     purpose: OtpPurpose,
-  ): Promise<string> {
-    const otp = randomInt(100000, 1000000).toString();
-    console.log("otp",otp)
-
-    const key = this.getKey(identifier, purpose);
-
-    await redisClient.set(key, otp, {
-      EX: this.otpExpirationSeconds,
-    });
-    return otp;
+  ): string {
+    return `otp:cooldown:${purpose.toLowerCase()}:${identifier.trim().toLowerCase()}`;
   }
 
-  async verify(
-    identifier: string,
-    purpose: OtpPurpose,
-    otp: string,
-  ): Promise<boolean> {
-    const key = this.getKey(identifier, purpose);
+async generateAndStore(
+  identifier: string,
+  purpose: OtpPurpose,
+): Promise<string> {
+  const otp = randomInt(100000, 1000000).toString();
+  // console.log("otp", otp)
+  const key = this.getKey(identifier, purpose);
 
-    const storedOtp = await redisClient.get(key);
+  await redisClient.set(key, otp, {
+    EX: this._otpExpirationSeconds,
+  });
 
-    if (!storedOtp) {
-      return false;
-    }
+  return otp;
+}
 
-    if (storedOtp !== otp) {
-      return false;
-    }
+async verify(
+  identifier: string,
+  purpose: OtpPurpose,
+  otp: string,
+): Promise<boolean> {
+  const key = this.getKey(identifier, purpose);
 
-    await redisClient.del(key);
+  const storedOtp = await redisClient.get(key);
 
-    return true;
+  // Reject missing, expired, or incorrect OTPs.
+  if (storedOtp === null || storedOtp !== otp) {
+    return false;
   }
+
+  // Consume the OTP after successful verification.
+  await redisClient.del(key);
+
+  return true;
+}
+
 
   async acquireResendCooldown(
     identifier: string,
@@ -60,7 +62,7 @@ export class RedisOtpService implements IOtpService {
     const key = this.getCooldownKey(identifier, purpose);
 
     const result = await redisClient.set(key, '1', {
-      EX: this.resendCooldownSeconds,
+      EX: this._resendCooldownSeconds,
       NX: true,
     });
 

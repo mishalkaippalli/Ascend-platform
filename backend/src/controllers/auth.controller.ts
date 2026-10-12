@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from 'express';
 
 import {
   ISignupDTO,
-  ISignupResponseDTO,
   ILoginResponseDTO,
   IVerifyOtpDTO,
   IResendOtpDTO,
@@ -11,30 +10,29 @@ import {
   IVerifyResetOtpDTO,
   IResetPasswordDTO,
   IVerifyResetOtpResponseDTO,
-  IRefreshResponseDTO
+  IRefreshResponseDTO,
 } from '../dtos/auth.dto';
-
+import { HttpStatusCode } from '../constants/http-status-code';
 import { IAuthService } from '../interfaces/service/auth/IAuthService';
 import { authConfig } from '../config/auth.config';
 import { UnauthorizedError } from '../errors/unauthorized.error';
-
-import { ApiSuccessResponse } from '../types/api.types';
+import { sendSuccessResponse } from '../utils/api-response.util';
 
 export class AuthController {
-  constructor(private readonly authService: IAuthService) {}
+  constructor(private readonly _authService: IAuthService) {}
 
   async signup(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input: ISignupDTO = req.body;
 
-      const user = await this.authService.signup(input);
+      const user = await this._authService.signup(input);
 
-      const response: ApiSuccessResponse<ISignupResponseDTO> = {
-        success: true,
-        data: user,
-      };
-
-      res.status(201).json(response);
+      sendSuccessResponse(
+        res,
+        HttpStatusCode.CREATED,
+        'Signup successful',
+        user,
+      );
     } catch (error) {
       next(error);
     }
@@ -48,19 +46,17 @@ export class AuthController {
     try {
       const otpData: IVerifyOtpDTO = req.body;
 
-      await this.authService.verifyEmailOtp(otpData);
+      await this._authService.verifyEmailOtp(otpData);
 
-      const response: ApiSuccessResponse = {
-        success: true,
-        message: 'Email verified successfully',
-      };
-
-      res.status(200).json(response);
+      sendSuccessResponse(
+        res,
+        HttpStatusCode.OK,
+        'Email verified successfully',
+      );
     } catch (error) {
       next(error);
     }
   }
-
 
   async resendOtp(
     req: Request,
@@ -70,14 +66,9 @@ export class AuthController {
     try {
       const otpData: IResendOtpDTO = req.body;
 
-      await this.authService.resendOtp(otpData);
+      await this._authService.resendOtp(otpData);
 
-      const response: ApiSuccessResponse = {
-        success: true,
-        message: 'OTP sent successfully',
-      };
-
-      res.status(200).json(response);
+      sendSuccessResponse(res, HttpStatusCode.OK, 'OTP sent successfully');
     } catch (error) {
       next(error);
     }
@@ -87,7 +78,7 @@ export class AuthController {
     try {
       const input: ILoginDTO = req.body;
 
-      const result = await this.authService.login(input);
+      const result = await this._authService.login(input);
 
       res.cookie(
         'refreshToken',
@@ -95,15 +86,15 @@ export class AuthController {
         authConfig.refreshTokenCookie,
       );
 
-      const response: ApiSuccessResponse<ILoginResponseDTO> = {
-        success: true,
-        data: {
+      sendSuccessResponse<ILoginResponseDTO>(
+        res,
+        HttpStatusCode.OK,
+        'Login successful',
+        {
           user: result.user,
           accessToken: result.accessToken,
         },
-      };
-
-      res.status(200).json(response);
+      );
     } catch (error) {
       next(error);
     }
@@ -121,47 +112,39 @@ export class AuthController {
         throw new UnauthorizedError('Refresh token is required');
       }
 
-      const result = await this.authService.refresh(refreshToken);
+      const result = await this._authService.refresh(refreshToken);
 
-    res.cookie(
-      'refreshToken',
-      result.refreshToken,
-      authConfig.refreshTokenCookie,
-    );
+      res.cookie(
+        'refreshToken',
+        result.refreshToken,
+        authConfig.refreshTokenCookie,
+      );
 
-    const response: ApiSuccessResponse<IRefreshResponseDTO> = {
-      success: true,
-      data: {
-        accessToken: result.accessToken,
-      },
-    };
-
-    res.status(200).json(response);
+      sendSuccessResponse<IRefreshResponseDTO>(
+        res,
+        HttpStatusCode.OK,
+        'Token refreshed successfully',
+        {
+          accessToken: result.accessToken,
+        },
+      );
     } catch (error) {
       next(error);
     }
   }
 
-  async logout(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const refreshToken = req.cookies.refreshToken;
 
       if (refreshToken) {
-        await this.authService.logout(refreshToken);
+        await this._authService.logout(refreshToken);
       }
 
-      res.clearCookie('refreshToken', authConfig.refreshTokenCookie);  //  Clear client-side cookie by passing original matching flags (path/domain/security) // Express internally overrides maxAge with a past date (1970) to force browser deletion
+      // Use the same cookie options so the browser can remove the cookie.
+      res.clearCookie('refreshToken', authConfig.refreshTokenCookie);
 
-      const response: ApiSuccessResponse = {
-        success: true,
-        message: 'Logged out successfully',
-      };
-
-      res.status(200).json(response);
+      sendSuccessResponse(res, HttpStatusCode.OK, 'Logged out successfully');
     } catch (error) {
       next(error);
     }
@@ -175,15 +158,13 @@ export class AuthController {
     try {
       const input: IForgotPasswordDTO = req.body;
 
-      await this.authService.forgotPassword(input);
+      await this._authService.forgotPassword(input);
 
-      const response: ApiSuccessResponse = {
-        success: true,
-        message:
-          'If an account exists with this email, a password reset OTP has been sent.',
-      };
-
-      res.status(200).json(response);
+      sendSuccessResponse(
+        res,
+        HttpStatusCode.OK,
+        'If an account exists with this email, a password reset OTP has been sent.',
+      );
     } catch (error) {
       next(error);
     }
@@ -197,17 +178,16 @@ export class AuthController {
     try {
       const input: IVerifyResetOtpDTO = req.body;
 
-      const resetToken =
-        await this.authService.verifyResetOtp(input);
+      const resetToken = await this._authService.verifyResetOtp(input);
 
-      const response: ApiSuccessResponse<IVerifyResetOtpResponseDTO> = {
-        success: true,
-        data: {
+      sendSuccessResponse<IVerifyResetOtpResponseDTO>(
+        res,
+        HttpStatusCode.OK,
+        'OTP verified successfully',
+        {
           resetToken,
         },
-      };
-
-      res.status(200).json(response);
+      );
     } catch (error) {
       next(error);
     }
@@ -221,14 +201,13 @@ export class AuthController {
     try {
       const input: IResetPasswordDTO = req.body;
 
-      await this.authService.resetPassword(input);
+      await this._authService.resetPassword(input);
 
-      const response: ApiSuccessResponse = {
-        success: true,
-        message: 'Password reset successfully',
-      };
-
-      res.status(200).json(response);
+      sendSuccessResponse(
+        res,
+        HttpStatusCode.OK,
+        'Password reset successfully',
+      );
     } catch (error) {
       next(error);
     }

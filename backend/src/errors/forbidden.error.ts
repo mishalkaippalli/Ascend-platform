@@ -1,8 +1,8 @@
 import { AppError } from './app-error.js';
+import { HttpStatusCode } from '../constants/http-status-code.js';
 
 export class ForbiddenError extends AppError {
   constructor(message = 'Forbidden') {
-    super(message, 403);
-    this.name = 'ForbiddenError';
+    super(message, HttpStatusCode.FORBIDDEN);
   }
 }

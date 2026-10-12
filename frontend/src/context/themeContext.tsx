@@ -23,7 +23,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       return savedTheme
     }
 
-    return 'light'
+    return 'system'
   })
 
   useEffect(() => {

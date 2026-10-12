@@ -1,8 +1,7 @@
 import { Router } from 'express'
 
 import { userController } from '../config/dependencies'
-import { authenticateMiddleware,authorizationMiddleware} from '../config/dependencies'
-import { UserRole } from '../types/auth.types'
+import { authenticateMiddleware} from '../config/dependencies'
 
 const router = Router()
 

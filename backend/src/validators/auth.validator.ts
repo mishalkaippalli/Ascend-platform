@@ -4,7 +4,7 @@ export const signupSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2, 'Name must be at least 2 characters')
+    .min(3, 'Name must be at least 3 characters')
     .max(50, 'Name must not exceed 50 characters'),
 
   email: z.string().trim().email('Please provide a valid email address'),
@@ -28,8 +28,8 @@ export const verifyOtpSchema = z.object({
 export const resendOtpSchema = z.object({
   email: z.email(),
   purpose: z.enum([
-    'EMAIL_VERIFICATION',
-    'PASSWORD_RESET',
+    'email_verification',
+    'password_reset',
   ]),
 });
 

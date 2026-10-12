@@ -88,7 +88,7 @@ function VerifyOtpPage() {
       // Resend an OTP specifically for email verification.
       const response = await resendOtp(
         email,
-        'EMAIL_VERIFICATION',
+        'email_verification',
       )
 
       setResendMessage(response.message)

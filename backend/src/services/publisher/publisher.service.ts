@@ -17,11 +17,11 @@ import { PublisherMapper } from '../../mappers/publisher.mapper';
 
 export class PublisherService implements IPublisherService {
   constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly publisherRepository: IPublisherRepository,
-    private readonly passwordHasher: IPasswordHasher,
-    private readonly otpService: IOtpService,
-    private readonly emailService: IEmailService,
+    private readonly _userRepository: IUserRepository,
+    private readonly _publisherRepository: IPublisherRepository,
+    private readonly _passwordHasher: IPasswordHasher,
+    private readonly _otpService: IOtpService,
+    private readonly _emailService: IEmailService,
   ) {}
 
   async signup(
@@ -31,7 +31,7 @@ export class PublisherService implements IPublisherService {
     const normalizedEmail = data.email.trim().toLowerCase();
 
     const existingUser =
-      await this.userRepository.findByEmail(normalizedEmail);
+      await this._userRepository.findByEmail(normalizedEmail);
 
     if (existingUser) {
       throw new ConflictError(
@@ -40,16 +40,16 @@ export class PublisherService implements IPublisherService {
     }
 
     const hashedPassword =
-      await this.passwordHasher.hash(data.password);
+      await this._passwordHasher.hash(data.password);
 
-    const user = await this.userRepository.create({
+    const user = await this._userRepository.create({
       name: data.name.trim(),
       email: normalizedEmail,
       password: hashedPassword,
       role: UserRole.PUBLISHER,
     });
 
-    const publisher = await this.publisherRepository.create({
+    const publisher = await this._publisherRepository.create({
       userId: user._id,
       publisherType: data.publisherType,
       ...(data.organizationName !== undefined && {
@@ -57,12 +57,12 @@ export class PublisherService implements IPublisherService {
       }),
     });
 
-    const otp = await this.otpService.generateAndStore(
+    const otp = await this._otpService.generateAndStore(
       normalizedEmail,
       OtpPurpose.EMAIL_VERIFICATION,
     );
 
-    await this.emailService.sendOtp(
+    await this._emailService.sendOtp(
       normalizedEmail,
       otp,
       OtpPurpose.EMAIL_VERIFICATION,

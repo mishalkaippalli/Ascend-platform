@@ -4,7 +4,7 @@ import { UnauthorizedError } from '../errors/unauthorized.error';
 import { ITokenService } from '../interfaces/service/auth/ITokenService';
 
 export class AuthenticateMiddleware {
-  constructor(private readonly tokenService: ITokenService) {}
+  constructor(private readonly _tokenService: ITokenService) {}
 
   execute(
     req: Request,
@@ -27,7 +27,7 @@ export class AuthenticateMiddleware {
 
     try {
       // Convert token verification failures into a 401 error.
-      payload = this.tokenService.verifyAccessToken(token);
+      payload = this._tokenService.verifyAccessToken(token);
     } catch {
       throw new UnauthorizedError(
         'Invalid or expired access token',

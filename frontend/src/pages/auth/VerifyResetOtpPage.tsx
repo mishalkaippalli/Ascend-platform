@@ -96,7 +96,7 @@ function VerifyResetOtpPage() {
     setIsResending(true)
 
     try {
-      const response = await resendOtp(email, 'PASSWORD_RESET')
+      const response = await resendOtp(email, 'password_reset')
 
       setResendMessage(response.message)
       setResendCooldown(60)

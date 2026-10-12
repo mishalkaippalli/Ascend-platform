@@ -15,7 +15,6 @@ function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
 
-
   const [errors, setErrors] = useState<{
     name?: string
     email?: string
@@ -34,6 +33,7 @@ function SignupPage() {
     ) => {
     event.preventDefault()
 
+  
     const result = signupSchema.safeParse({
       name,
       email,

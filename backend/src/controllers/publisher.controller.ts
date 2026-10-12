@@ -1,36 +1,26 @@
 import { NextFunction, Request, Response } from 'express';
 
-import {
-  IPublisherSignupDTO,
-  IPublisherSignupResponseDTO,
-} from '../dtos/publisher.dto';
+import { IPublisherSignupDTO } from '../dtos/publisher.dto';
 
 import { IPublisherService } from '../interfaces/service/publisher/IPublisherService';
-
-import { ApiSuccessResponse } from '../types/api.types';
+import { HttpStatusCode } from '../constants/http-status-code';
+import { sendSuccessResponse } from '../utils/api-response.util';
 
 export class PublisherController {
-  constructor(
-    private readonly publisherService: IPublisherService,
-  ) {}
+  constructor(private readonly _publisherService: IPublisherService) {}
 
-  async signup(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> {
+  async signup(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input: IPublisherSignupDTO = req.body;
 
-      const publisher =
-        await this.publisherService.signup(input);
+      const publisher = await this._publisherService.signup(input);
 
-      const response: ApiSuccessResponse<IPublisherSignupResponseDTO> = {
-        success: true,
-        data: publisher,
-      };
-
-      res.status(201).json(response);
+      sendSuccessResponse(
+        res,
+        HttpStatusCode.CREATED,
+        'Publisher signup successful',
+        publisher,
+      );
     } catch (error) {
       next(error);
     }

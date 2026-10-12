@@ -8,11 +8,11 @@ import { NotFoundError } from '../../errors/not-found.error'
 
 export class UserService implements IUserService {
   constructor(
-    private readonly userRepository: IUserRepository,
+    private readonly _userRepository: IUserRepository,
   ) {}
 
   async getCurrentUser(userId: string): Promise<ISignupResponseDTO> {
-    const user = await this.userRepository.findById(
+    const user = await this._userRepository.findById(
       new Types.ObjectId(userId),
     )
 

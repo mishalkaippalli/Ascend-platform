@@ -31,40 +31,40 @@ import { authConfig } from '../../config/auth.config';
 
 export class AuthService implements IAuthService {
   constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly passwordHasher: IPasswordHasher,
-    private readonly otpService: IOtpService,
-    private readonly emailService: IEmailService,
-    private readonly tokenService: ITokenService,
-    private readonly refreshSessionRepository: IRefreshSessionRepository,
-    private readonly refreshTokenHasher: IRefreshTokenHasher,
-    private passwordResetTokenService: IPasswordResetTokenService,
+    private readonly _userRepository: IUserRepository,
+    private readonly _passwordHasher: IPasswordHasher,
+    private readonly _otpService: IOtpService,
+    private readonly _emailService: IEmailService,
+    private readonly _tokenService: ITokenService,
+    private readonly _refreshSessionRepository: IRefreshSessionRepository,
+    private readonly _refreshTokenHasher: IRefreshTokenHasher,
+    private readonly _passwordResetTokenService: IPasswordResetTokenService,
   ) {}
 
   async signup(input: ISignupDTO): Promise<ISignupResponseDTO> {
     const normalizedEmail = input.email.trim().toLowerCase();
 
-    const existingUser = await this.userRepository.findByEmail(normalizedEmail);
+    const existingUser = await this._userRepository.findByEmail(normalizedEmail);
 
     if (existingUser) {
       throw new ConflictError('An account with this email already exists');
     }
 
-    const hashedPassword = await this.passwordHasher.hash(input.password);
+    const hashedPassword = await this._passwordHasher.hash(input.password);
 
-    const user = await this.userRepository.create({
+    const user = await this._userRepository.create({
       name: input.name.trim(),
       email: normalizedEmail,
       password: hashedPassword,
       role: UserRole.USER,
     });
 
-    const otp = await this.otpService.generateAndStore(
+    const otp = await this._otpService.generateAndStore(
       normalizedEmail,
       OtpPurpose.EMAIL_VERIFICATION,
     );
 
-    await this.emailService.sendOtp(normalizedEmail, otp, OtpPurpose.EMAIL_VERIFICATION);
+    await this._emailService.sendOtp(normalizedEmail, otp, OtpPurpose.EMAIL_VERIFICATION);
 
     return UserMapper.toSignupResponse(user);
   }
@@ -72,13 +72,13 @@ export class AuthService implements IAuthService {
   async verifyEmailOtp(input: IVerifyOtpDTO): Promise<void> {
     const normalizedEmail = input.email.trim().toLowerCase();
 
-    const user = await this.userRepository.findByEmail(normalizedEmail);
+    const user = await this._userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
       throw new NotFoundError('User not found');
     }
 
-    const isValid = await this.otpService.verify(
+    const isValid = await this._otpService.verify(
       normalizedEmail,
       OtpPurpose.EMAIL_VERIFICATION,
       input.otp,
@@ -88,13 +88,13 @@ export class AuthService implements IAuthService {
       throw new BadRequestError('Invalid or expired OTP');
     }
 
-    await this.userRepository.updateEmailVerification(user._id, true);
+    await this._userRepository.updateEmailVerification(user._id, true);
   }
 
   async login(input: ILoginDTO): Promise<LoginResult> {
     const normalizedEmail = input.email.trim().toLowerCase();
 
-    const user = await this.userRepository.findByEmail(normalizedEmail, true);
+    const user = await this._userRepository.findByEmail(normalizedEmail, true);
 
     if (!user) {
       throw new UnauthorizedError('Invalid email or password');
@@ -108,7 +108,7 @@ export class AuthService implements IAuthService {
       throw new ForbiddenError('Please verify your email before logging in');
     }
 
-    const isPasswordValid = await this.passwordHasher.verify(
+    const isPasswordValid = await this._passwordHasher.verify(
       user.password,
       input.password,
     );
@@ -117,23 +117,23 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    const accessToken = this.tokenService.generateAccessToken({
+    const accessToken = this._tokenService.generateAccessToken({
       sub: user._id.toString(),
       role: user.role,
     });
 
     const tokenId = randomUUID();
 
-    const refreshToken = this.tokenService.generateRefreshToken({
+    const refreshToken = this._tokenService.generateRefreshToken({
       sub: user._id.toString(),
       jti: tokenId,
     });
 
-    const refreshTokenHash = this.refreshTokenHasher.hash(refreshToken);
+    const refreshTokenHash = this._refreshTokenHasher.hash(refreshToken);
 
     const expiresAt = new Date(Date.now() + authConfig.refreshToken.maxAge);
 
-    await this.refreshSessionRepository.create({
+    await this._refreshSessionRepository.create({
       userId: user._id,
       tokenId,
       tokenHash: refreshTokenHash,
@@ -156,7 +156,7 @@ export class AuthService implements IAuthService {
   async resendOtp(input: IResendOtpDTO): Promise<void> {
     const normalizedEmail = input.email.trim().toLowerCase();
 
-    const user = await this.userRepository.findByEmail(normalizedEmail);
+    const user = await this._userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
       throw new NotFoundError('User not found');
@@ -169,19 +169,8 @@ export class AuthService implements IAuthService {
       throw new BadRequestError('Email is already verified');
     }
 
-    const otp = await this.otpService.generateAndStore(
-      normalizedEmail,
-      input.purpose,
-    );
-
-    await this.emailService.sendOtp(
-      normalizedEmail,
-      otp,
-      input.purpose,
-    );
-
     const cooldownAcquired =
-      await this.otpService.acquireResendCooldown(
+      await this._otpService.acquireResendCooldown(
         normalizedEmail,
         input.purpose,
       );
@@ -191,12 +180,23 @@ export class AuthService implements IAuthService {
         'Please wait before requesting another OTP',
       );
     }
+
+    const otp = await this._otpService.generateAndStore(
+      normalizedEmail,
+      input.purpose,
+    );
+
+    await this._emailService.sendOtp(
+      normalizedEmail,
+      otp,
+      input.purpose,
+    );
   }
 
   async refresh(refreshToken: string): Promise<RefreshResult> {
-    const payload = this.tokenService.verifyRefreshToken(refreshToken);
+    const payload = this._tokenService.verifyRefreshToken(refreshToken);
 
-    const session = await this.refreshSessionRepository.findByTokenId(
+    const session = await this._refreshSessionRepository.findByTokenId(
       payload.jti,
     );
     
@@ -212,11 +212,11 @@ export class AuthService implements IAuthService {
       throw new UnauthorizedError('Refresh token has expired');
     }
        
-    if (!this.refreshTokenHasher.verify(refreshToken, session.tokenHash)) {
+    if (!this._refreshTokenHasher.verify(refreshToken, session.tokenHash)) {
       throw new UnauthorizedError('Invalid refresh token');
     }
 
-    const user = await this.userRepository.findById(
+    const user = await this._userRepository.findById(
       new Types.ObjectId(payload.sub),
     );
 
@@ -227,15 +227,15 @@ export class AuthService implements IAuthService {
     const newTokenId = randomUUID();
 
     const newRefreshToken =
-      this.tokenService.generateRefreshToken({
+      this._tokenService.generateRefreshToken({
         sub: user._id.toString(),
         jti: newTokenId,
       });
 
     const newRefreshTokenHash =
-       this.refreshTokenHasher.hash(newRefreshToken);
+       this._refreshTokenHasher.hash(newRefreshToken);
 
-    await this.refreshSessionRepository.create({
+    await this._refreshSessionRepository.create({
         userId: user._id,
         tokenId: newTokenId,
         tokenHash: newRefreshTokenHash,
@@ -244,11 +244,11 @@ export class AuthService implements IAuthService {
         ),
     });
 
-    await this.refreshSessionRepository.revokeByTokenId(
+    await this._refreshSessionRepository.revokeByTokenId(
       payload.jti,
     );
 
-    const accessToken = this.tokenService.generateAccessToken({
+    const accessToken = this._tokenService.generateAccessToken({
       sub: user._id.toString(),
       role: user.role,
     });
@@ -262,9 +262,9 @@ export class AuthService implements IAuthService {
   async logout(refreshToken: string): Promise<void> {
       try {
         const payload =
-          this.tokenService.verifyRefreshToken(refreshToken);
+          this._tokenService.verifyRefreshToken(refreshToken);
 
-        await this.refreshSessionRepository.revokeByTokenId(
+        await this._refreshSessionRepository.revokeByTokenId(
           payload.jti,
         );
       } catch {
@@ -278,18 +278,18 @@ export class AuthService implements IAuthService {
     const normalizedEmail = data.email.toLowerCase().trim();
 
     const user =
-      await this.userRepository.findByEmail(normalizedEmail);
+      await this._userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
       return;
     }
 
-    const otp = await this.otpService.generateAndStore(
+    const otp = await this._otpService.generateAndStore(
       normalizedEmail,
       OtpPurpose.PASSWORD_RESET,
     );
 
-    await this.emailService.sendOtp(
+    await this._emailService.sendOtp(
       normalizedEmail,
       otp,
       OtpPurpose.PASSWORD_RESET,
@@ -302,14 +302,14 @@ export class AuthService implements IAuthService {
     const normalizedEmail = data.email.toLowerCase().trim();
 
     const user =
-      await this.userRepository.findByEmail(normalizedEmail);
+      await this._userRepository.findByEmail(normalizedEmail);
 
     if (!user) {
       throw new UnauthorizedError('Invalid or expired OTP');
     }
 
     const isValid =
-      await this.otpService.verify(
+      await this._otpService.verify(
         normalizedEmail,
         OtpPurpose.PASSWORD_RESET,
         data.otp,
@@ -320,7 +320,7 @@ export class AuthService implements IAuthService {
     }
 
     const resetToken =
-      await this.passwordResetTokenService.generateAndStore(
+      await this._passwordResetTokenService.generateAndStore(
         user._id.toString(),
       );
 
@@ -329,17 +329,17 @@ export class AuthService implements IAuthService {
 
   async resetPassword(data: IResetPasswordDTO): Promise<void> {
     const userId =
-      await this.passwordResetTokenService.consume(
+      await this._passwordResetTokenService.consume(
         data.resetToken,
       );
 
     const objectUserId = new Types.ObjectId(userId);
 
     const hashedPassword =
-      await this.passwordHasher.hash(data.newPassword);
+      await this._passwordHasher.hash(data.newPassword);
 
     const user =
-      await this.userRepository.updatePassword(
+      await this._userRepository.updatePassword(
         objectUserId,
         hashedPassword,
       );
@@ -348,7 +348,7 @@ export class AuthService implements IAuthService {
       throw new NotFoundError('User not found');
     }
 
-    await this.refreshSessionRepository.revokeAllByUserId(
+    await this._refreshSessionRepository.revokeAllByUserId(
       objectUserId,
     );
   }

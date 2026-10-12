@@ -1,6 +1,6 @@
 export type OtpPurpose =
-  | 'EMAIL_VERIFICATION'
-  | 'PASSWORD_RESET'
+  | 'email_verification'
+  | 'password_reset'
 
 export type UserRole =
   | 'user'

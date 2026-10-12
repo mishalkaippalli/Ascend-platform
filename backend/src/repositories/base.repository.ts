@@ -8,27 +8,27 @@ export abstract class BaseRepository<
   TUpdate extends Partial<TEntity>,
 > implements IBaseRepository<TEntity, TCreate, TUpdate> {
   
-  protected constructor(protected readonly model: Model<TEntity>) {}
+  protected constructor(protected readonly _model: Model<TEntity>) {}
 
   async create(data: TCreate): Promise<HydratedDocument<TEntity>> {
-    return this.model.create(data);
+    return this._model.create(data);
   }
 
   async findById(
     id: Types.ObjectId,
   ): Promise<HydratedDocument<TEntity> | null> {
-    return this.model.findById(id).exec();
+    return this._model.findById(id).exec();
   }
 
   async findAll(): Promise<HydratedDocument<TEntity>[]> {
-    return this.model.find().exec();
+    return this._model.find().exec();
   }
 
   async updateById(
     id: Types.ObjectId,
     data: TUpdate,
   ): Promise<HydratedDocument<TEntity> | null> {
-    return this.model
+    return this._model
       .findByIdAndUpdate(id, data, {
         new: true,
         runValidators: true,
@@ -39,6 +39,6 @@ export abstract class BaseRepository<
   async deleteById(
     id: Types.ObjectId,
   ): Promise<HydratedDocument<TEntity> | null> {
-    return this.model.findByIdAndDelete(id).exec();
+    return this._model.findByIdAndDelete(id).exec();
   }
 }

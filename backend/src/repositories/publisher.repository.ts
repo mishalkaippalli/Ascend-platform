@@ -26,6 +26,6 @@ export class PublisherRepository
   }
 
   async findByUserId(userId: Types.ObjectId) {
-    return this.model.findOne({ userId }).exec();
+    return this._model.findOne({ userId }).exec();
   }
 }

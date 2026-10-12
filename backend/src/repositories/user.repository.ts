@@ -8,9 +8,7 @@ import {
 
 import { IUser, User } from '../models/user/user.model';
 
-import { BaseRepository } from './base.repository';
-
-/**
+import { BaseRepository } from './base.repository';                                                   /**
  * Passes User-specific types to the generic BaseRepository template:
  * - IUser: Shape of a saved User document in MongoDB (includes _id, timestamps).
  * - CreateUserData: Fields required to create a new user (omits system fields).
@@ -26,7 +24,7 @@ export class UserRepository
   }
 
   async findByEmail(email: string, includePassword = false) {
-    const query = this.model.findOne({ email });
+    const query = this._model.findOne({ email });
 
     if (includePassword) {
       query.select('+password');
@@ -39,7 +37,7 @@ export class UserRepository
     userId: Types.ObjectId,
     emailVerified: boolean,
   ) {
-    return this.model
+    return this._model
       .findByIdAndUpdate(
         userId,
         { emailVerified },
@@ -52,7 +50,7 @@ export class UserRepository
   }
 
   async updatePassword(userId: Types.ObjectId, password: string) {
-    return this.model
+    return this._model
       .findByIdAndUpdate(
         userId,
         { password },
@@ -69,7 +67,7 @@ export class UserRepository
     isActive: boolean,
     deactivatedAt: Date | null = null,
   ) {
-    return this.model
+    return this._model
       .findByIdAndUpdate(
         userId,
         {
