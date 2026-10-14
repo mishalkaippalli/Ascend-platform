@@ -31,7 +31,7 @@ export class AuthController {
         res,
         HttpStatusCode.CREATED,
         'Signup successful',
-        user,
+        user,                
       );
     } catch (error) {
       next(error);

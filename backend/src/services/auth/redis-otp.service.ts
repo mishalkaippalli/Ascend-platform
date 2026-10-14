@@ -24,7 +24,7 @@ async generateAndStore(
   purpose: OtpPurpose,
 ): Promise<string> {
   const otp = randomInt(100000, 1000000).toString();
-  // console.log("otp", otp)
+  console.log("otp", otp)
   const key = this.getKey(identifier, purpose);
 
   await redisClient.set(key, otp, {

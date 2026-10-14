@@ -31,8 +31,8 @@ import { authConfig } from '../../config/auth.config';
 
 export class AuthService implements IAuthService {
   constructor(
-    private readonly _userRepository: IUserRepository,
-    private readonly _passwordHasher: IPasswordHasher,
+    private readonly _userRepository: IUserRepository,  
+    private readonly _passwordHasher: IPasswordHasher,   
     private readonly _otpService: IOtpService,
     private readonly _emailService: IEmailService,
     private readonly _tokenService: ITokenService,
