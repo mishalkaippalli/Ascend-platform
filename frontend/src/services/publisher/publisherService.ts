@@ -10,7 +10,7 @@ export async function publisherSignup(
   const response = await api.post<{
     success: boolean
     data: PublisherSignupResponseDTO
-  }>('/publisher/signup', data)
+  }>('/publishers/signup', data)
 
   return response.data.data
 }

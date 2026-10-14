@@ -13,14 +13,17 @@ const STORAGE_KEY = 'ascend-theme'
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<ThemePreference>(() => {
-    const savedTheme = localStorage.getItem(STORAGE_KEY)
+    try {
+      const savedTheme = localStorage.getItem(STORAGE_KEY)
 
-    if (
-      savedTheme === 'light' ||
-      savedTheme === 'dark' ||
-      savedTheme === 'system'
-    ) {
-      return savedTheme
+      if (
+        savedTheme === 'light' ||
+        savedTheme === 'dark' ||
+        savedTheme === 'system'
+      ) {
+        return savedTheme
+      }
+    } catch {
     }
 
     return 'system'
@@ -28,7 +31,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   useEffect(() => {
     const root = document.documentElement
-    const systemPreference = window.matchMedia(
+    //This asks the browser whether the user's operating system or browser environment prefers dark mode.
+    const systemPreference = window.matchMedia( 
       '(prefers-color-scheme: dark)',
     )
 
