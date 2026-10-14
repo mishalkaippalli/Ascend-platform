@@ -9,11 +9,15 @@ import { IUserRepository } from '../../interfaces/repository/IUserRepository';
 import { IPasswordHasher } from '../../interfaces/service/auth/IPasswordHasher';
 import { IOtpService } from '../../interfaces/service/auth/IOtpService';
 import { IEmailService } from '../../interfaces/service/auth/IEmailService';
+import { IPublisher } from '../../models/publisher/publisher.model';
 
 import { IPublisherService } from '../../interfaces/service/publisher/IPublisherService';
 import { ConflictError } from '../../errors/conflict.error';
 import { UserRole, OtpPurpose } from '../../types/auth.types';
 import { PublisherMapper } from '../../mappers/publisher.mapper';
+
+import { Types } from 'mongoose';
+import { BadRequestError } from '../../../src/errors/bad-request.error';
 
 export class PublisherService implements IPublisherService {
   constructor(
@@ -70,4 +74,71 @@ export class PublisherService implements IPublisherService {
 
     return PublisherMapper.toSignupResponse(user, publisher);
   }
+
+  async findPending(): Promise<IPublisher[]> {
+   return this._publisherRepository.findPending();
+  }
+
+  async approvePublisher(
+    publisherId: string,
+    adminId: string,
+  ): Promise<IPublisher> {
+    // Validate IDs before using them in MongoDB queries.
+    if (
+      !Types.ObjectId.isValid(publisherId) ||
+      !Types.ObjectId.isValid(adminId)
+    ) {
+      throw new BadRequestError('Invalid publisher or admin ID');
+    }
+
+    const publisherObjectId = new Types.ObjectId(publisherId);
+    const adminObjectId = new Types.ObjectId(adminId);
+
+    const publisher = await this._publisherRepository.approvePending(
+      publisherObjectId,
+      adminObjectId,
+    );
+
+    if (!publisher) {
+      throw new ConflictError(
+        'Publisher application not found or already reviewed',
+      );
+    }
+
+    return publisher;
+  }
+
+  async rejectPublisher(
+    publisherId: string,
+    adminId: string,
+    reason: string,
+  ): Promise<IPublisher> {
+    
+    const trimmedReason = reason.trim();
+
+    if (!trimmedReason) {
+      throw new BadRequestError('Rejection reason is required');
+    }
+
+    if (
+      !Types.ObjectId.isValid(publisherId) ||
+      !Types.ObjectId.isValid(adminId)
+    ) {
+      throw new BadRequestError('Invalid publisher or admin ID');
+    }
+
+    const publisher = await this._publisherRepository.rejectPending(
+      new Types.ObjectId(publisherId),
+      new Types.ObjectId(adminId),
+      trimmedReason,
+    );
+
+    if (!publisher) {
+      throw new ConflictError(
+        'Publisher application not found or already reviewed',
+      );
+    }
+
+    return publisher;
+}
 }

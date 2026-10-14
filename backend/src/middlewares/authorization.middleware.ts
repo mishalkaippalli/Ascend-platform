@@ -13,7 +13,6 @@ export class AuthorizationMiddleware {
       if (req.user?.role !== requiredRole) {
         throw new ForbiddenError('Insufficient permissions');
       }
-
       next();
     };
   }

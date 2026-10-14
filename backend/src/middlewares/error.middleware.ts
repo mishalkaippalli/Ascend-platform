@@ -12,6 +12,8 @@ export const errorMiddleware = (
   _next: NextFunction,
 ): void => {
   if (error instanceof AppError) {
+    // Expected application errors: validation, authentication,
+    // authorization, conflicts, and other known failures.
     logger.warn(
       {
         statusCode: error.statusCode,
@@ -21,11 +23,24 @@ export const errorMiddleware = (
     );
 
     sendErrorResponse(res, error.statusCode, error.message);
-
     return;
   }
 
-  logger.error(error, 'Unhandled application error');
+  // Unexpected errors: preserve details for debugging.
+  if (error instanceof Error) {
+    logger.error(
+      {
+        err: error,
+        stack: error.stack,
+      },
+      'Unexpected server error',
+    );
+  } else {
+    logger.error(
+      { error },
+      'Unexpected non-Error value',
+    );
+  }
 
   sendErrorResponse(
     res,
