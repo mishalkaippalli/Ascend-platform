@@ -21,3 +21,9 @@ export interface IPublisherSignupResponseDTO {
   verificationStatus: PublisherVerificationStatus;
   emailVerified: boolean;
 }
+
+export interface IPublisherVerificationStatusDTO {
+  status: PublisherVerificationStatus;
+  reason?: string;
+  reviewedAt?: Date;
+}

@@ -119,4 +119,29 @@ export class PublisherController {
       next(error);
     }
   }
+  async getMyVerificationStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError('Authentication required');
+      }
+
+      const userId = req.user.id;
+
+      const publisher =
+        await this._publisherService.getMyVerificationStatus(userId);
+
+      sendSuccessResponse(
+        res,
+        HttpStatusCode.OK,
+        'Publisher verification status retrieved successfully',
+        publisher,
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
 }

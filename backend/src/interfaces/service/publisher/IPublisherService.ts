@@ -1,6 +1,7 @@
 import {
   IPublisherSignupDTO,
   IPublisherSignupResponseDTO,
+  IPublisherVerificationStatusDTO
 } from '../../../dtos/publisher.dto';
 
 import { IPublisher } from '../../../models/publisher/publisher.model';
@@ -22,4 +23,8 @@ export interface IPublisherService {
     adminId: string,
     reason: string,
   ): Promise<IPublisher>;
+
+  getMyVerificationStatus(
+  userId: string,
+): Promise<IPublisherVerificationStatusDTO>;
 }

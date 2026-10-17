@@ -1,6 +1,7 @@
 import {
   IPublisherSignupDTO,
   IPublisherSignupResponseDTO,
+  IPublisherVerificationStatusDTO,
 } from '../../dtos/publisher.dto';
 
 import { IPublisherRepository } from '../../interfaces/repository/IPublisherRepository';
@@ -12,12 +13,14 @@ import { IEmailService } from '../../interfaces/service/auth/IEmailService';
 import { IPublisher } from '../../models/publisher/publisher.model';
 
 import { IPublisherService } from '../../interfaces/service/publisher/IPublisherService';
-import { ConflictError } from '../../errors/conflict.error';
+import { ConflictError} from '../../errors/conflict.error';
+import { NotFoundError } from '../../errors/not-found.error';
 import { UserRole, OtpPurpose } from '../../types/auth.types';
 import { PublisherMapper } from '../../mappers/publisher.mapper';
 
 import { Types } from 'mongoose';
 import { BadRequestError } from '../../../src/errors/bad-request.error';
+import { PublisherVerificationStatus } from '../../types/publisher.types';
 
 export class PublisherService implements IPublisherService {
   constructor(
@@ -140,5 +143,33 @@ export class PublisherService implements IPublisherService {
     }
 
     return publisher;
-}
+  }
+
+  async getMyVerificationStatus(userId: string): Promise<IPublisherVerificationStatusDTO> {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestError('User ID is not valid');
+    }
+
+    const userIdObj = new Types.ObjectId(userId);
+
+    const publisher = await this._publisherRepository.findByUserId(userIdObj);
+
+    if (!publisher) {
+      throw new NotFoundError('Publisher application not found');
+    }
+
+    const verificationStatus: IPublisherVerificationStatusDTO = {
+      status: publisher.verification.status,
+    };
+
+    if (publisher.verification.reason !== undefined) {
+      verificationStatus.reason = publisher.verification.reason;
+    }
+
+    if (publisher.verification.reviewedAt !== undefined) {
+      verificationStatus.reviewedAt = publisher.verification.reviewedAt;
+    }
+
+    return verificationStatus;
+  }
 }

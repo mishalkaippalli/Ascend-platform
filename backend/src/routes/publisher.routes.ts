@@ -41,4 +41,11 @@ router.patch(
   publisherController.rejectPublisher.bind(publisherController),
 );
 
+router.get(
+  '/me/verification',
+  authenticateMiddleware.execute.bind(authenticateMiddleware),
+  authorizationMiddleware.execute(UserRole.PUBLISHER),
+  publisherController.getMyVerificationStatus.bind(publisherController),
+);
+
 export default router;

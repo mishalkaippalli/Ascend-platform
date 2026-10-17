@@ -1,17 +1,17 @@
-import { useState } from 'react'
-import axios from 'axios'
-import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { useState } from "react"
+import axios from "axios"
+import { useNavigate } from "react-router-dom"
+import { Eye, EyeOff } from "lucide-react"
 
-import { signup } from '../../services/auth/authService'
-import { signupSchema } from '../../schemas/authSchema'
+import { signup } from "../../services/auth/authService"
+import { signupSchema } from "../../schemas/authSchema"
 
 function SignupPage() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [errors, setErrors] = useState<{
@@ -21,7 +21,7 @@ function SignupPage() {
     confirmPassword?: string
   }>({})
 
-  const [serverError, setServerError] = useState('')
+  const [serverError, setServerError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -49,10 +49,10 @@ function SignupPage() {
         const field = issue.path[0]
 
         if (
-          field === 'name' ||
-          field === 'email' ||
-          field === 'password' ||
-          field === 'confirmPassword'
+          field === "name" ||
+          field === "email" ||
+          field === "password" ||
+          field === "confirmPassword"
         ) {
           fieldErrors[field] = issue.message
         }
@@ -63,25 +63,23 @@ function SignupPage() {
     }
 
     setErrors({})
-    setServerError('')
+    setServerError("")
     setIsLoading(true)
 
     try {
       const response = await signup(result.data)
 
       // Pass the email temporarily through router state, not the URL.
-      navigate('/verify-otp', {
+      navigate("/verify-otp", {
         state: {
           email: response.email,
         },
       })
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setServerError(
-          error.response?.data?.message || 'Something went wrong',
-        )
+        setServerError(error.response?.data?.message || "Something went wrong")
       } else {
-        setServerError('Something went wrong')
+        setServerError("Something went wrong")
       }
     } finally {
       // Reset loading for both successful and failed requests.
@@ -118,7 +116,7 @@ function SignupPage() {
               htmlFor="name"
               className="mb-2 block text-sm font-medium text-primary"
             >
-              Full name
+              Full name *
             </label>
 
             <input
@@ -127,7 +125,7 @@ function SignupPage() {
               value={name}
               onChange={(event) => {
                 setName(event.target.value)
-                setServerError('')
+                setServerError("")
 
                 if (errors.name) {
                   setErrors((previous) => ({
@@ -150,7 +148,7 @@ function SignupPage() {
               htmlFor="email"
               className="mb-2 block text-sm font-medium text-primary"
             >
-              Email
+              Email *
             </label>
 
             <input
@@ -159,7 +157,7 @@ function SignupPage() {
               value={email}
               onChange={(event) => {
                 setEmail(event.target.value)
-                setServerError('')
+                setServerError("")
 
                 if (errors.email) {
                   setErrors((previous) => ({
@@ -182,17 +180,17 @@ function SignupPage() {
               htmlFor="password"
               className="mb-2 block text-sm font-medium text-primary"
             >
-              Password
+              Password *
             </label>
 
             <div className="relative">
               <input
                 id="password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(event) => {
                   setPassword(event.target.value)
-                  setServerError('')
+                  setServerError("")
 
                   if (errors.password) {
                     setErrors((previous) => ({
@@ -209,7 +207,7 @@ function SignupPage() {
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
                 className="absolute inset-y-0 right-3 flex items-center text-muted transition hover:text-primary"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
               </button>
@@ -225,17 +223,17 @@ function SignupPage() {
               htmlFor="confirmPassword"
               className="mb-2 block text-sm font-medium text-primary"
             >
-              Confirm Password
+              Confirm Password *
             </label>
 
             <div className="relative">
               <input
                 id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(event) => {
                   setConfirmPassword(event.target.value)
-                  setServerError('')
+                  setServerError("")
 
                   if (errors.confirmPassword) {
                     setErrors((previous) => ({
@@ -250,21 +248,15 @@ function SignupPage() {
 
               <button
                 type="button"
-                onClick={() =>
-                  setShowConfirmPassword((current) => !current)
-                }
+                onClick={() => setShowConfirmPassword((current) => !current)}
                 className="absolute inset-y-0 right-3 flex items-center text-muted transition hover:text-primary"
                 aria-label={
                   showConfirmPassword
-                    ? 'Hide confirm password'
-                    : 'Show confirm password'
+                    ? "Hide confirm password"
+                    : "Show confirm password"
                 }
               >
-                {showConfirmPassword ? (
-                  <EyeOff size={19} />
-                ) : (
-                  <Eye size={19} />
-                )}
+                {showConfirmPassword ? <EyeOff size={19} /> : <Eye size={19} />}
               </button>
             </div>
 
@@ -280,14 +272,14 @@ function SignupPage() {
             disabled={isLoading}
             className="w-full rounded-lg bg-primary px-4 py-3 font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {isLoading ? "Creating account..." : "Create Account"}
           </button>
 
           <div className="text-center text-sm text-secondary">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate("/login")}
               className="font-medium text-accent hover:underline"
             >
               Sign in
@@ -300,8 +292,6 @@ function SignupPage() {
 }
 
 export default SignupPage
-
-
 
 // import { useState } from 'react'
 // import axios from 'axios'
@@ -318,7 +308,6 @@ export default SignupPage
 //   const [showPassword, setShowPassword] = useState(false)
 //   const [confirmPassword, setConfirmPassword] = useState('')
 //   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
 
 //   const [errors, setErrors] = useState<{
 //     name?: string
@@ -338,7 +327,6 @@ export default SignupPage
 //     ) => {
 //     event.preventDefault()
 
-  
 //     const result = signupSchema.safeParse({
 //       name,
 //       email,
