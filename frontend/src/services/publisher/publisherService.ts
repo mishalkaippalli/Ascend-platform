@@ -1,4 +1,5 @@
 import api from '../api/axios'
+import type { PublisherProfile } from '../../types/publisherProfile'
 import type {
   PublisherSignupDTO,
   PublisherSignupResponseDTO,
@@ -11,6 +12,16 @@ export async function publisherSignup(
     success: boolean
     data: PublisherSignupResponseDTO
   }>('/publishers/signup', data)
+
+  return response.data.data
+}
+
+export async function getMyProfile(): Promise<PublisherProfile> {
+  const response = await api.get<{
+    success: boolean
+    message: string
+    data: PublisherProfile
+  }>('/publishers/me')
 
   return response.data.data
 }

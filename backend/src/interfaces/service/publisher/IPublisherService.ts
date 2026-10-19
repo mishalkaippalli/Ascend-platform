@@ -1,4 +1,5 @@
 import {
+  IPublisherProfileDTO,
   IPublisherSignupDTO,
   IPublisherSignupResponseDTO,
   IPublisherVerificationStatusDTO
@@ -25,6 +26,10 @@ export interface IPublisherService {
   ): Promise<IPublisher>;
 
   getMyVerificationStatus(
-  userId: string,
-): Promise<IPublisherVerificationStatusDTO>;
+   userId: string,
+  ): Promise<IPublisherVerificationStatusDTO>;
+
+  getMyProfile(
+    userId: string
+  ): Promise<IPublisherProfileDTO>;
 }

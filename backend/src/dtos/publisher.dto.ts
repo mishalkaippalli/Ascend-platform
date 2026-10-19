@@ -27,3 +27,22 @@ export interface IPublisherVerificationStatusDTO {
   reason?: string;
   reviewedAt?: Date;
 }
+
+export interface IPublisherProfileDTO {
+  user: {
+    name: string;
+    email: string;
+    profilepic?: {
+      publicId: string;
+      url: string;
+    };
+  };
+
+  publisher: {
+    publisherType: PublisherType;
+    organizationName?: string;
+    verification: IPublisherVerificationStatusDTO;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}

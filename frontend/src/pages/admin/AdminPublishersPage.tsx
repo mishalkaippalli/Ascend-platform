@@ -64,9 +64,42 @@ function AdminPublishersPage() {
     }
   }, [])
 
-  useEffect(() => {
-    void fetchPublishers()
-  }, [fetchPublishers])
+    useEffect(() => {
+      let isActive = true
+
+      async function loadPublishers() {
+        try {
+          const response = await getPendingPublishers()
+
+          // Avoid updating state if the page has already unmounted.
+          if (isActive) {
+            setPublishers(response.data)
+            setError(null)
+          }
+        } catch (error) {
+          console.error('Failed to fetch pending publishers:', error)
+
+          if (isActive) {
+            setError(
+              axios.isAxiosError(error)
+                ? error.response?.data?.message ??
+                    'Unable to load pending publisher applications.'
+                : 'Unable to load pending publisher applications.',
+            )
+          }
+        } finally {
+          if (isActive) {
+            setIsLoading(false)
+          }
+        }
+      }
+
+      void loadPublishers()
+
+      return () => {
+        isActive = false
+      }
+    }, [])
 
   // Format the submission date for display.
   const formatDate = (date: string) =>

@@ -24,8 +24,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         return savedTheme
       }
     } catch {
+      return 'system'
     }
-
     return 'system'
   })
 

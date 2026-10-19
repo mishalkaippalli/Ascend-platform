@@ -1,4 +1,5 @@
 import {
+  IPublisherProfileDTO,
   IPublisherSignupDTO,
   IPublisherSignupResponseDTO,
   IPublisherVerificationStatusDTO,
@@ -20,7 +21,6 @@ import { PublisherMapper } from '../../mappers/publisher.mapper';
 
 import { Types } from 'mongoose';
 import { BadRequestError } from '../../../src/errors/bad-request.error';
-import { PublisherVerificationStatus } from '../../types/publisher.types';
 
 export class PublisherService implements IPublisherService {
   constructor(
@@ -171,5 +171,54 @@ export class PublisherService implements IPublisherService {
     }
 
     return verificationStatus;
+  }
+
+  async getMyProfile(userId: string): Promise<IPublisherProfileDTO> {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestError('User ID is not valid');
+    }
+
+    const userIdObj = new Types.ObjectId(userId);
+
+    const [user, publisher] = await Promise.all([
+      this._userRepository.findById(userIdObj),
+      this._publisherRepository.findByUserId(userIdObj),
+    ]);
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    if (!publisher) {
+      throw new NotFoundError('Publisher application not found');
+    }
+
+    // Combining the selected fields into the profile response DTO.
+    return {
+      user: {
+        name: user.name,
+        email: user.email,
+        ...(user.profilepic?.url && {
+          profilepic: user.profilepic,
+        }),
+      },
+      publisher: {
+        publisherType: publisher.publisherType,
+        ...(publisher.organizationName !== undefined && {
+          organizationName: publisher.organizationName,
+        }),
+        verification: {
+          status: publisher.verification.status,
+          ...(publisher.verification.reason !== undefined && {
+            reason: publisher.verification.reason,
+          }),
+          ...(publisher.verification.reviewedAt !== undefined && {
+            reviewedAt: publisher.verification.reviewedAt,
+          }),
+        },
+        createdAt: publisher.createdAt,
+        updatedAt: publisher.updatedAt,
+      },
+    };
   }
 }

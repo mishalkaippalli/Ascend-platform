@@ -15,7 +15,7 @@ import PublisherDashboardPage from '../pages/publisher/PublisherDashboardPage'
 import AdminLayout from '../layouts/AdminLayout'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 import AdminPublishersPage from '../pages/admin/AdminPublishersPage'
-
+import PublisherProfilePage from '../pages/publisher/PublisherProfilePage'
 
 const router = createBrowserRouter([
   {
@@ -76,6 +76,10 @@ const router = createBrowserRouter([
             path: '/publisher/dashboard',
             element: <PublisherDashboardPage />,
           },
+          {
+            path: '/publisher/profile',
+            element: <PublisherProfilePage />,
+          },
         ],
       },
     ],
@@ -98,6 +102,7 @@ const router = createBrowserRouter([
       },
     ],
   },
+
 ])
 
 export default router

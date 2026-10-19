@@ -144,4 +144,29 @@ export class PublisherController {
       next(error);
     }
   }
+
+  async getMyProfile(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError('Authentication required');
+      }
+
+      const userId = req.user.id;
+
+      const publisher = await this._publisherService.getMyProfile(userId);
+
+      sendSuccessResponse(
+        res,
+        HttpStatusCode.OK,
+        'Publisher profile retrieved successfully',
+        publisher,
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
 }

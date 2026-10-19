@@ -48,4 +48,11 @@ router.get(
   publisherController.getMyVerificationStatus.bind(publisherController),
 );
 
+router.get(
+  '/me',
+  authenticateMiddleware.execute.bind(authenticateMiddleware),
+  authorizationMiddleware.execute(UserRole.PUBLISHER),
+  publisherController.getMyProfile.bind(publisherController),
+);
+
 export default router;

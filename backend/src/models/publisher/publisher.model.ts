@@ -16,6 +16,8 @@ export interface IPublisher {
     reviewedAt?: Date;
     reviewedBy?: Types.ObjectId;
   };
+  createdAt: Date;
+ updatedAt: Date;
 }
 
 const publisherSchema = new Schema<IPublisher>(
