@@ -25,7 +25,20 @@ import { RedisPasswordResetTokenService } from '../services/auth/redis-password-
 import { AuthenticateMiddleware } from '../middlewares/authenticate.middleware';
 import { AuthorizationMiddleware } from '../middlewares/authorization.middleware';
 
+import { BookRepository } from '../repositories/book/book.repository';
+import { IBookRepository } from '../interfaces/repository/IBookRepository';
 
+import { IBookService } from '../interfaces/service/book/IBookService';
+import { BookService } from '../services/book/book.service';
+
+import { BookController } from '../controllers/book.controller';
+
+import { BookChapterRepository } from '../repositories/book/book-chapter.repository';
+import { IBookChapterRepository } from '../interfaces/repository/IBookChapterRepository';
+
+import { IBookChapterService } from '../interfaces/service/book/IBookChapterService';
+import { BookChapterService } from '../services/book/book-chapter.service';
+import { BookChapterController } from '../controllers/book-chapter.controller';
 // --------------------------------------------------
 // Repositories
 // --------------------------------------------------
@@ -39,6 +52,11 @@ const publisherRepository: IPublisherRepository =
 const refreshSessionRepository =
   new RefreshSessionRepository();
 
+const bookChapterRepository: IBookChapterRepository =  
+  new BookChapterRepository();
+
+const bookRepository: IBookRepository = 
+  new BookRepository();
 
 // --------------------------------------------------
 // Shared services / infrastructure
@@ -91,7 +109,13 @@ const publisherService: IPublisherService =
     emailService,
   );
 
+const bookChapterService: IBookChapterService =
+  new BookChapterService(bookChapterRepository);
 
+const bookService: IBookService = new BookService(
+  bookRepository,
+  publisherRepository,
+);
 // --------------------------------------------------
 // Controllers
 // --------------------------------------------------
@@ -104,6 +128,12 @@ export const userController =
 
   export const publisherController =
   new PublisherController(publisherService);
+
+  export const bookChapterController =
+  new BookChapterController(bookChapterService);
+
+  export const bookController = 
+  new BookController(bookService);
 
 // --------------------------------------------------
 // Middleware

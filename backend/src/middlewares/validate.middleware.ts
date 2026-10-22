@@ -8,6 +8,7 @@ export const validate = (schema: ZodType) => {
     const result = schema.safeParse(req.body);
 
     if (!result.success) {
+      // console.error('Validation errors:', result.error.issues);
       throw new BadRequestError('Invalid request data');
     }
 

@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 
 import { IBaseRepository } from './IBaseRepository';
-import { IPublisher } from '../../models/publisher/publisher.model';
+import { PublisherDocument, IPublisher } from '../../models/publisher/publisher.model';
 import { PublisherType } from '../../types/publisher.types';
 
 export interface CreatePublisherData {
@@ -18,7 +18,7 @@ export interface IPublisherRepository
     CreatePublisherData,
     UpdatePublisherData
   > {
-  findByUserId(userId: Types.ObjectId): Promise<IPublisher | null>;
+  findByUserId(userId: Types.ObjectId): Promise<PublisherDocument| null>;
 
   // Returns publishers waiting for admin approval.
   findPending(): Promise<IPublisher[]>;
