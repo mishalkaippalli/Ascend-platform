@@ -7,6 +7,7 @@ import userRoutes from './routes/user.routes'
 import bookChapterRoutes from './routes/book-chapter.routes';
 import publisherRoutes from './routes/publisher.routes';
 import bookRoutes from './routes/book.routes';
+import categoryRoutes from './routes/category.routes';
 import { errorMiddleware } from './middlewares/error.middleware';
 
 const app = express();
@@ -22,7 +23,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api', bookRoutes);
-
+app.use('/api', categoryRoutes);
 app.use('/api', bookChapterRoutes);
 
 app.use('/api/auth', authRoutes);
