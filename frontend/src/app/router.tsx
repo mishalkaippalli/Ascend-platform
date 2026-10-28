@@ -16,6 +16,8 @@ import AdminLayout from '../layouts/AdminLayout'
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage'
 import AdminPublishersPage from '../pages/admin/AdminPublishersPage'
 import PublisherProfilePage from '../pages/publisher/PublisherProfilePage'
+import AdminCategoriesPage from '../pages/admin/AdminCategoriesPage'
+import PublisherCreateBookPage from '../pages/publisher/PublisherCreateBookPage'
 
 const router = createBrowserRouter([
   {
@@ -80,6 +82,10 @@ const router = createBrowserRouter([
             path: '/publisher/profile',
             element: <PublisherProfilePage />,
           },
+          {
+            path: '/publisher/books/new',
+            element: <PublisherCreateBookPage />,
+          },
         ],
       },
     ],
@@ -98,10 +104,15 @@ const router = createBrowserRouter([
             path: '/admin/publishers',
             element: <AdminPublishersPage />,
           },
+          {
+            path: '/admin/categories',
+            element: <AdminCategoriesPage />,
+          }
         ],
       },
     ],
   },
+
 
 ])
 

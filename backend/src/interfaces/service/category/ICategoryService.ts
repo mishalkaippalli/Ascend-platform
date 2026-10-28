@@ -1,8 +1,28 @@
-import type { ICreateCategoryDTO } from '../../../dtos/category.dto';
-import type { CategoryDocument } from '../../../models/category/category.model';
+import type { ICreateCategoryDTO,
+  IUpdateCategoryDTO,
+  IUpdateCategoryStatusDTO,
+  CategoryResponseDTO,
+  ActiveCategoryDTO
+  } from '../../../dtos/category.dto';
+
+import type { Types } from 'mongoose';
 
 export interface ICategoryService {
-  createCategory(data: ICreateCategoryDTO): Promise<CategoryDocument>;
+  createCategory(
+    data: ICreateCategoryDTO,
+  ): Promise<CategoryResponseDTO>;
 
-  getActiveCategories(): Promise<CategoryDocument[]>;
+  updateCategory(
+    categoryId: Types.ObjectId,
+    data: IUpdateCategoryDTO,
+  ): Promise<CategoryResponseDTO>;
+
+  updateCategoryStatus(
+    categoryId: Types.ObjectId,
+    data: IUpdateCategoryStatusDTO,
+  ): Promise<CategoryResponseDTO>;
+
+  getActiveCategories(): Promise<ActiveCategoryDTO[]>;
+  
+  getAllCategories(): Promise<CategoryResponseDTO[]>;
 }

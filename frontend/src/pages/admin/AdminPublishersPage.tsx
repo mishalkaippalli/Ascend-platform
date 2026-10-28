@@ -120,11 +120,6 @@ function AdminPublishersPage() {
 
   // Approve a publisher and remove the application from the pending list.
   const handleApprove = async (publisher: PendingPublisher) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to approve ${publisher.userId.name}?`,
-    )
-
-    if (!confirmed) return
 
     try {
       setActiveAction({
