@@ -1,7 +1,7 @@
 export interface ICreateBookDTO {
   title: string;
   description: string;
-  authors: string[];
+  authorIds: string[];
   categoryIds: string[];
 
   // Publishers enter prices in rupees; the service converts them to paise.
@@ -9,6 +9,5 @@ export interface ICreateBookDTO {
   salePrice?: number;
 
   language: string;
-
   previewText?: string;
 }

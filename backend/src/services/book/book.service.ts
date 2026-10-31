@@ -14,18 +14,20 @@ import { ForbiddenError } from '../../errors/forbidden.error';
 import { NotFoundError } from '../../errors/not-found.error';
 
 import type { BookDocument } from '../../models/book/book.model';
+import type { IAuthorRepository } from '../../interfaces/repository/IAuthorRepository';
 
 export class BookService implements IBookService {
   constructor(
     private readonly _bookRepository: IBookRepository,
     private readonly _publisherRepository: IPublisherRepository,
+    private readonly _authorRepository: IAuthorRepository,
   ) {}
 
   async createBook(
     userId: Types.ObjectId,
     data: ICreateBookDTO,
   ): Promise<BookDocument> {
-   
+
     const publisher = await this._publisherRepository.findByUserId(userId);
 
     if (!publisher) {
@@ -74,7 +76,9 @@ export class BookService implements IBookService {
         !Number.isFinite(amount) ||
         amount < 0
       ) {
-        throw new BadRequestError(`${field} must be a valid non-negative amount.`);
+        throw new BadRequestError(
+          `${field} must be a valid non-negative amount.`,
+        );
       }
 
       const paise = Math.round(amount * 100);
@@ -108,17 +112,55 @@ export class BookService implements IBookService {
     // Validate category IDs before converting them to ObjectIds.
     const categoryIds = data.categoryIds.map((categoryId) => {
       if (!Types.ObjectId.isValid(categoryId)) {
-        throw new BadRequestError('One or more category IDs are invalid.');
+        throw new BadRequestError(
+          'One or more category IDs are invalid.',
+        );
       }
 
       return new Types.ObjectId(categoryId);
     });
 
-    const authors = data.authors.map((author) => author.trim());
+    // Validate author IDs before querying MongoDB.
+    const authorIds = data.authorIds.map((authorId) => {
+      if (!Types.ObjectId.isValid(authorId)) {
+        throw new BadRequestError(
+          'One or more author IDs are invalid.',
+        );
+      }
 
-    if (authors.length === 0 || authors.some((author) => !author)) {
+      return new Types.ObjectId(authorId);
+    });
+
+    if (authorIds.length === 0) {
       throw new BadRequestError(
-        'Provide at least one valid book author.',
+        'At least one author is required.',
+      );
+    }
+
+    // Prevent the same author from being associated more than once.
+    const uniqueAuthorIds = new Set(
+      authorIds.map((id) => id.toString()),
+    );
+
+    if (uniqueAuthorIds.size !== authorIds.length) {
+      throw new BadRequestError(
+        'Duplicate authors are not allowed.',
+      );
+    }
+
+    // Verify that every author belongs to this publisher.
+    const authors = await Promise.all(
+      authorIds.map((authorId) =>
+        this._authorRepository.findByIdAndPublisherId(
+          authorId,
+          publisher._id,
+        ),
+      ),
+    );
+
+    if (authors.some((author) => !author)) {
+      throw new BadRequestError(
+        'One or more authors are invalid or do not belong to your publisher account.',
       );
     }
 
@@ -127,10 +169,12 @@ export class BookService implements IBookService {
       title,
       slug,
       description: data.description.trim(),
-      authors,
+      authorIds,
       categoryIds,
       priceInPaise,
-      ...(salePriceInPaise !== undefined ? { salePriceInPaise } : {}),
+      ...(salePriceInPaise !== undefined
+        ? { salePriceInPaise }
+        : {}),
       language: data.language.trim().toLowerCase(),
       ...(data.previewText !== undefined
         ? { previewText: data.previewText.trim() }

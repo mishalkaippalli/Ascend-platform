@@ -9,9 +9,10 @@ import { sendSuccessResponse } from '../utils/api-response.util';
 
 export class BookController {
   constructor(private readonly _bookService: IBookService) {}
+  
 
   async createBook(req: Request, res: Response): Promise<void> {
-   // req.user is set by authentication middleware
+
     if (!req.user) {
       throw new UnauthorizedError('Authentication required');
     }

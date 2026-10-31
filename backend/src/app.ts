@@ -10,6 +10,7 @@ import bookRoutes from './routes/book.routes';
 import categoryRoutes from './routes/category.routes';
 import { errorMiddleware } from './middlewares/error.middleware';
 import adminRoutes from './routes/admin.routes'
+import authorRoutes from './routes/author.routes';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/books', bookChapterRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/publishers', publisherRoutes);
+app.use('/api/publishers/authors', authorRoutes);
 
 // Admin routes
 app.use('/api/admin', adminRoutes);

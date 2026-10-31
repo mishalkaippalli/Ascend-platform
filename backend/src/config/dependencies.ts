@@ -48,6 +48,13 @@ import { ICategoryService } from '../interfaces/service/category/ICategoryServic
 
 import { CategoryController } from '../controllers/category.controller';
 
+import { AuthorRepository } from '../repositories/author.repository';
+import { AuthorService } from '../services/publisher/author.service';
+
+import { IAuthorRepository } from '../interfaces/repository/IAuthorRepository';
+import { IAuthorService } from '../interfaces/service/publisher/IAuthorService';
+import { AuthorController } from '../controllers/author.controller';
+
 
 // --------------------------------------------------
 // Repositories
@@ -70,6 +77,9 @@ const bookRepository: IBookRepository =
 
 const categoryRepository: ICategoryRepository = 
   new CategoryRepository();
+
+const authorRepository: IAuthorRepository = 
+  new AuthorRepository();
 
 // --------------------------------------------------
 // Shared services / infrastructure
@@ -128,10 +138,16 @@ const bookChapterService: IBookChapterService =
 const bookService: IBookService = new BookService(
   bookRepository,
   publisherRepository,
+  authorRepository,
 );
 
 const categoryService: ICategoryService = 
   new CategoryService(categoryRepository);
+
+  const authorService: IAuthorService = new AuthorService(
+  authorRepository,
+  publisherRepository,
+);
 // --------------------------------------------------
 // Controllers
 // --------------------------------------------------
@@ -153,6 +169,8 @@ export const userController =
 
   export const categoryController = 
   new CategoryController(categoryService);
+
+  export const authorController = new AuthorController(authorService);
 
 // --------------------------------------------------
 // Middleware

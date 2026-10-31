@@ -12,7 +12,7 @@ export interface IBook {
   title: string;
   slug: string;
   description: string;
-  authors: string[];
+  authorIds: Types.ObjectId[];
 
   // Book cover displayed as the thumbnail.
   coverImage?: {
@@ -100,16 +100,20 @@ const bookSchema = new Schema<IBook>(
       trim: true,
     },
 
-    authors: {
-      type: [String],
-      required: true,
-      validate: {
-        validator: (authors: string[]) =>
-          authors.length > 0 &&
-          authors.every((author) => author.trim().length > 0),
-        message: 'A book must have at least one valid author.',
+  authorIds: {
+    type: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Author',
       },
+    ],
+    required: true,
+    validate: {
+      validator: (authorIds: Types.ObjectId[]) =>
+        authorIds.length > 0,
+      message: 'A book must have at least one author.',
     },
+  },
 
     coverImage: {
       publicId: {
