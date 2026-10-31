@@ -13,7 +13,7 @@ import { createBookSchema } from '../validators/book.validator';
 const router = Router();
 
 router.post(
-  '/publishers/books',
+  '/',
   authenticateMiddleware.execute.bind(authenticateMiddleware),
   authorizationMiddleware.execute(UserRole.PUBLISHER),
   validate(createBookSchema),

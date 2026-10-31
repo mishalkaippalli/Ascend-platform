@@ -216,7 +216,7 @@ export default function AdminCategoriesPage() {
 
   async function handleToggleStatus(category: Category) {
     const nextIsActive = !category.isActive
-    const action = nextIsActive ? 'activate' : 'deactivate'
+    // const action = nextIsActive ? 'activate' : 'deactivate'
 
     // const confirmed = window.confirm(
     //   `Are you sure you want to ${action} "${category.name}"?`,

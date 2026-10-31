@@ -5,10 +5,11 @@ import {
   IPublisherRepository,
   UpdatePublisherData,
 } from '../interfaces/repository/IPublisherRepository';
-
+import type { UserDocument } from '../../src/models/user/user.model';
 import {
   IPublisher,
   Publisher,
+  PopulatedPublisherDocument,
 } from '../models/publisher/publisher.model';
 import { PublisherVerificationStatus } from '../types/publisher.types';
 
@@ -28,6 +29,17 @@ export class PublisherRepository
 
   async findByUserId(userId: Types.ObjectId) {
     return this._model.findOne({ userId }).exec();
+  }
+
+  async findAllPublishers(): Promise<PopulatedPublisherDocument[]> {
+    return this._model
+      .find({})
+      .populate<{ userId: UserDocument }>(
+        'userId',
+        'name email emailVerified isActive createdAt',
+      )
+      .sort({ createdAt: -1 })
+      .exec();
   }
 
   async findPending(): Promise<IPublisher[]> {

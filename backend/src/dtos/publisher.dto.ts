@@ -46,3 +46,26 @@ export interface IPublisherProfileDTO {
     updatedAt: Date;
   };
 }
+
+export interface IPublisherAdminListDTO {
+  id: string;
+  publisherType: PublisherType;
+  organizationName?: string;
+
+  verification: {
+    status: PublisherVerificationStatus;
+    reason?: string;
+    reviewedAt?: Date;
+  };
+
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+    isActive: boolean;
+    createdAt: Date;
+  };
+
+  createdAt: Date;
+}

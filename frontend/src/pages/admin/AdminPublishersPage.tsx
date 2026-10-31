@@ -12,12 +12,14 @@ import {
 } from 'lucide-react'
 
 import {
+  getAllPublishers,
   getPendingPublishers,
   approvePublisher,
   rejectPublisher,
-} from '../../services/publisher/publisherVerificationService'
+} from '../../services/admin/publisherService'
 
 import type { PendingPublisher } from '../../types/publisherVerification'
+import type { PublisherAdminListItem } from '../../types/publisher'
 
 type PublisherAction = {
   publisherId: string
@@ -42,14 +44,26 @@ function AdminPublishersPage() {
     message: string
   } | null>(null)
 
-  // Load pending publisher applications from the backend.
+  // Stores all publishers, regardless of verification status.
+  const [allPublishers, setAllPublishers] = useState<
+    PublisherAdminListItem[]
+  >([])
+
+  const [isAllPublishersLoading, setIsAllPublishersLoading] =
+    useState(true)
+
+  const [allPublishersError, setAllPublishersError] =
+    useState<string | null>(null)
+
+  // Fetch pending publisher applications from the backend.
   const fetchPublishers = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
 
-      const response = await getPendingPublishers()
-      setPublishers(response.data)
+      // The service already returns the publisher array.
+      const publishers = await getPendingPublishers()
+      setPublishers(publishers)
     } catch (error) {
       console.error('Failed to fetch pending publishers:', error)
 
@@ -64,42 +78,38 @@ function AdminPublishersPage() {
     }
   }, [])
 
-    useEffect(() => {
-      let isActive = true
 
-      async function loadPublishers() {
-        try {
-          const response = await getPendingPublishers()
+  // Fetch every publisher for the management table.
+  const fetchAllPublishers = useCallback(async () => {
+    try {
+      setIsAllPublishersLoading(true)
+      setAllPublishersError(null)
 
-          // Avoid updating state if the page has already unmounted.
-          if (isActive) {
-            setPublishers(response.data)
-            setError(null)
-          }
-        } catch (error) {
-          console.error('Failed to fetch pending publishers:', error)
+      const publishers = await getAllPublishers()
+      setAllPublishers(publishers)
+    } catch (error) {
+      console.error('Failed to fetch all publishers:', error)
 
-          if (isActive) {
-            setError(
-              axios.isAxiosError(error)
-                ? error.response?.data?.message ??
-                    'Unable to load pending publisher applications.'
-                : 'Unable to load pending publisher applications.',
-            )
-          }
-        } finally {
-          if (isActive) {
-            setIsLoading(false)
-          }
-        }
-      }
+      setAllPublishersError(
+        axios.isAxiosError(error)
+          ? error.response?.data?.message ??
+              'Unable to load publishers.'
+          : 'Unable to load publishers.',
+      )
+    } finally {
+      setIsAllPublishersLoading(false)
+    }
+  }, [])
 
-      void loadPublishers()
+  // Load both datasets after the component has mounted.
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      void fetchPublishers()
+      void fetchAllPublishers()
+    }, 0)
 
-      return () => {
-        isActive = false
-      }
-    }, [])
+    return () => clearTimeout(timeoutId)
+  }, [fetchPublishers, fetchAllPublishers])
 
   // Format the submission date for display.
   const formatDate = (date: string) =>
@@ -120,7 +130,6 @@ function AdminPublishersPage() {
 
   // Approve a publisher and remove the application from the pending list.
   const handleApprove = async (publisher: PendingPublisher) => {
-
     try {
       setActiveAction({
         publisherId: publisher._id,
@@ -135,6 +144,7 @@ function AdminPublishersPage() {
           (item) => item._id !== publisher._id,
         ),
       )
+      void fetchAllPublishers()
 
       setFeedback({
         type: 'success',
@@ -199,6 +209,7 @@ function AdminPublishersPage() {
           (item) => item._id !== publisher._id,
         ),
       )
+      void fetchAllPublishers()
 
       setPublisherToReject(null)
       setRejectionReason('')
@@ -265,13 +276,18 @@ function AdminPublishersPage() {
 
           <button
             type="button"
-            onClick={() => void fetchPublishers()}
-            disabled={isLoading || isProcessing}
+            onClick={() => {
+              void fetchPublishers()
+              void fetchAllPublishers()
+            }}
+            disabled={isLoading || isAllPublishersLoading || isProcessing}
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw
               size={16}
-              className={isLoading ? 'animate-spin' : ''}
+              className={
+                isLoading || isAllPublishersLoading ? 'animate-spin' : ''
+              }
             />
             Refresh
           </button>
@@ -455,6 +471,161 @@ function AdminPublishersPage() {
             })}
           </section>
         )}
+
+        {/* All publishers management table */}
+        <section className="mt-12">
+          <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-sm font-medium text-accent">
+                Publisher directory
+              </p>
+              <h2 className="mt-1 font-serif text-2xl sm:text-3xl">
+                All publishers
+              </h2>
+              <p className="mt-2 text-sm text-secondary">
+                View every publisher and their current account and verification status.
+              </p>
+            </div>
+
+            <span className="self-start rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-secondary sm:self-auto">
+              {allPublishers.length} publishers
+            </span>
+          </div>
+
+          {isAllPublishersLoading ? (
+            <div
+              role="status"
+              className="flex items-center justify-center gap-3 rounded-2xl border border-border bg-surface px-6 py-12 text-secondary"
+            >
+              <RefreshCw size={20} className="animate-spin" />
+              Loading publishers...
+            </div>
+          ) : allPublishersError ? (
+            <div
+              role="alert"
+              className="rounded-2xl border border-error/20 bg-error/10 p-6"
+            >
+              <p className="font-medium text-error">{allPublishersError}</p>
+              <button
+                type="button"
+                onClick={() => void fetchAllPublishers()}
+                className="mt-4 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium"
+              >
+                Try again
+              </button>
+            </div>
+          ) : allPublishers.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-surface px-6 py-12 text-center">
+              <Building2 size={32} className="mx-auto text-muted" />
+              <h3 className="mt-3 font-semibold">No publishers found</h3>
+              <p className="mt-1 text-sm text-secondary">
+                Publisher accounts will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[950px] text-left text-sm">
+                  <thead className="border-b border-border bg-background/70 text-xs uppercase tracking-wide text-secondary">
+                    <tr>
+                      <th className="px-5 py-4 font-medium">Publisher</th>
+                      <th className="px-5 py-4 font-medium">Type</th>
+                      <th className="px-5 py-4 font-medium">Organization</th>
+                      <th className="px-5 py-4 font-medium">Verification</th>
+                      <th className="px-5 py-4 font-medium">Email</th>
+                      <th className="px-5 py-4 font-medium">Account</th>
+                      <th className="px-5 py-4 font-medium">Joined</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-border">
+                    {allPublishers.map((publisher) => {
+                      const verificationStatus =
+                        publisher.verification.status
+
+                      const verificationBadge =
+                        verificationStatus === 'approved'
+                          ? 'bg-success/10 text-success'
+                          : verificationStatus === 'rejected'
+                            ? 'bg-error/10 text-error'
+                            : 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+
+                      return (
+                        <tr
+                          key={publisher.id}
+                          className="transition-colors hover:bg-background/60"
+                        >
+                          <td className="px-5 py-4">
+                            <p className="font-medium text-primary">
+                              {publisher.user.name}
+                            </p>
+                            <p className="mt-1 text-xs text-secondary">
+                              {publisher.user.email}
+                            </p>
+                          </td>
+
+                          <td className="px-5 py-4 capitalize">
+                            {publisher.publisherType}
+                          </td>
+
+                          <td className="px-5 py-4 text-secondary">
+                            {publisher.organizationName ?? '—'}
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium capitalize ${verificationBadge}`}
+                            >
+                              {verificationStatus}
+                            </span>
+                            {publisher.verification.reason && (
+                              <p
+                                className="mt-1 max-w-[180px] truncate text-xs text-secondary"
+                                title={publisher.verification.reason}
+                              >
+                                {publisher.verification.reason}
+                              </p>
+                            )}
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={
+                                publisher.user.emailVerified
+                                  ? 'font-medium text-success'
+                                  : 'font-medium text-error'
+                              }
+                            >
+                              {publisher.user.emailVerified
+                                ? 'Verified'
+                                : 'Not verified'}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span
+                              className={
+                                publisher.user.isActive
+                                  ? 'font-medium text-success'
+                                  : 'font-medium text-error'
+                              }
+                            >
+                              {publisher.user.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+
+                          <td className="whitespace-nowrap px-5 py-4 text-secondary">
+                            {formatDate(publisher.createdAt)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Rejection reason dialog */}
@@ -569,3 +740,4 @@ function isRejectingDialogLoading(action: PublisherAction | null) {
 }
 
 export default AdminPublishersPage
+

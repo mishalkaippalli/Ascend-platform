@@ -8,13 +8,13 @@ const router = Router();
 
 // Retrieve all chapters belonging to a book.
 router.get(
-  '/books/:bookId/chapters',
+  '/:bookId/chapters',
   bookChapterController.getChaptersByBookId.bind(bookChapterController),
 );
 
 // Retrieve one chapter by its number.
 router.get(
-  '/books/:bookId/chapters/:chapterNumber',
+  '/:bookId/chapters/:chapterNumber',
   authenticateMiddleware.execute.bind(authenticateMiddleware),
   bookChapterController.getChapterByNumber.bind(bookChapterController),
 );

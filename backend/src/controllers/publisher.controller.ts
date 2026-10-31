@@ -169,4 +169,15 @@ export class PublisherController {
       next(error);
     }
   }
+
+  async getAllPublishers(_req: Request, res: Response): Promise<void>{
+    const publishers = await this._publisherService.getAllPublishers();
+
+    sendSuccessResponse(
+      res,
+      HttpStatusCode.OK,
+      'publishers retrieved successfully.',
+      publishers
+    )
+  }
 }

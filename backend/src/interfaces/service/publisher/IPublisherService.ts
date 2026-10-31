@@ -2,7 +2,8 @@ import {
   IPublisherProfileDTO,
   IPublisherSignupDTO,
   IPublisherSignupResponseDTO,
-  IPublisherVerificationStatusDTO
+  IPublisherVerificationStatusDTO,
+  IPublisherAdminListDTO
 } from '../../../dtos/publisher.dto';
 
 import { IPublisher } from '../../../models/publisher/publisher.model';
@@ -13,6 +14,8 @@ export interface IPublisherService {
   ): Promise<IPublisherSignupResponseDTO>;
 
   findPending(): Promise<IPublisher[]>
+
+  getAllPublishers(): Promise<IPublisherAdminListDTO[]>
 
   approvePublisher(
     publisherId: string,

@@ -5,6 +5,8 @@ import {
   PublisherVerificationStatus,
 } from '../../types/publisher.types';
 
+import type { UserDocument } from '../user/user.model';
+
 export interface IPublisher {
   userId: Types.ObjectId;
   publisherType: PublisherType;
@@ -74,3 +76,10 @@ export const Publisher = model<IPublisher>(
   'Publisher',
   publisherSchema,
 );
+
+export type PopulatedPublisherDocument = Omit<
+  PublisherDocument,
+  'userId'
+> & {
+  userId: UserDocument;
+};

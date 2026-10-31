@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import type { PopulatedPublisherDocument } from '../../models/publisher/publisher.model';
 
 import { IBaseRepository } from './IBaseRepository';
 import { PublisherDocument, IPublisher } from '../../models/publisher/publisher.model';
@@ -33,4 +34,6 @@ export interface IPublisherRepository
     reviewedBy: Types.ObjectId,
     reason: string,
   ): Promise<IPublisher | null>;
+
+ findAllPublishers(): Promise<PopulatedPublisherDocument[]>;
 }

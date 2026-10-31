@@ -1,4 +1,5 @@
 import {
+  IPublisherAdminListDTO,
   IPublisherProfileDTO,
   IPublisherSignupDTO,
   IPublisherSignupResponseDTO,
@@ -76,6 +77,42 @@ export class PublisherService implements IPublisherService {
     );
 
     return PublisherMapper.toSignupResponse(user, publisher);
+  }
+  
+  async getAllPublishers(): Promise<IPublisherAdminListDTO[]> {
+    const publishers = await this._publisherRepository.findAllPublishers();
+
+    return publishers.map((publisher) => ({
+      id: publisher._id.toString(),
+      publisherType: publisher.publisherType,
+
+      ...(publisher.organizationName !== undefined && {
+        organizationName: publisher.organizationName,
+      }),
+
+      verification: {
+        status: publisher.verification.status,
+
+        ...(publisher.verification.reason !== undefined && {
+          reason: publisher.verification.reason,
+        }),
+
+        ...(publisher.verification.reviewedAt !== undefined && {
+          reviewedAt: publisher.verification.reviewedAt,
+        }),
+      },
+
+      user: {
+        id: publisher.userId._id.toString(),
+        name: publisher.userId.name,
+        email: publisher.userId.email,
+        emailVerified: publisher.userId.emailVerified,
+        isActive: publisher.userId.isActive,
+        createdAt: publisher.userId.createdAt,
+      },
+
+      createdAt: publisher.createdAt,
+    }));
   }
 
   async findPending(): Promise<IPublisher[]> {
