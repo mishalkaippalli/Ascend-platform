@@ -6,12 +6,18 @@ import {
   CheckCircle,
   Plus,
   RefreshCw,
-  Trash2,
+  Search,
+  UserPlus,
   X,
 } from 'lucide-react'
 import axios from 'axios'
 import type { PublicCategory } from '../../types/category'
 import type { CreateBookDTO } from '../../types/book'
+import type { Author, CreateAuthorDTO } from '../../types/author'
+import {
+  createAuthor,
+  getMyAuthors,
+} from '../../services/publisher/authorService'
 import {
   createBook,
   getBookCategories,
@@ -43,7 +49,7 @@ const labelClasses = 'mb-2 block text-sm font-medium text-primary'
 const initialForm = {
   title: '',
   description: '',
-  authors: [''],
+  authorIds: [] as string[],
   categoryIds: [] as string[],
   price: '',
   salePrice: '',
@@ -88,6 +94,22 @@ export default function PublisherCreateBookPage() {
   const [isLoadingCategories, setIsLoadingCategories] = useState(true)
   const [categoryError, setCategoryError] = useState('')
 
+  // Available authors belonging to this publisher.
+  const [authors, setAuthors] = useState<Author[]>([])
+  const [isLoadingAuthors, setIsLoadingAuthors] = useState(true)
+  const [authorError, setAuthorError] = useState('')
+
+  // Author search and creation modal state.
+  const [authorSearch, setAuthorSearch] = useState('')
+  const [isAuthorModalOpen, setIsAuthorModalOpen] = useState(false)
+  const [isCreatingAuthor, setIsCreatingAuthor] = useState(false)
+
+  // New author form fields.
+  const [authorName, setAuthorName] = useState('')
+  const [authorOrigin, setAuthorOrigin] = useState('')
+  const [authorBio, setAuthorBio] = useState('')
+  const [authorFormError, setAuthorFormError] = useState('')
+
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState<BookFormErrors>({})
   const [submitError, setSubmitError] = useState('')
@@ -126,6 +148,118 @@ export default function PublisherCreateBookPage() {
     }
   }, [])
 
+  useEffect(() => {
+    let isActive = true
+
+    async function loadAuthors() {
+      try {
+        const result = await getMyAuthors()
+
+        if (isActive) {
+          setAuthors(result)
+          setAuthorError('')
+        }
+      } catch (error) {
+        if (isActive) {
+          setAuthorError(getApiErrorMessage(error))
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingAuthors(false)
+        }
+      }
+    }
+
+    void loadAuthors()
+
+    return () => {
+      isActive = false
+    }
+  }, [])
+
+// Add or remove an author ID without creating duplicate selections.
+function toggleAuthor(authorId: string) {
+  setForm((current) => ({
+    ...current,
+    authorIds: current.authorIds.includes(authorId)
+      ? current.authorIds.filter((id) => id !== authorId)
+      : current.authorIds.length < 20
+        ? [...current.authorIds, authorId]
+        : current.authorIds,
+  }))
+
+  setErrors((current) => ({ ...current, authors: undefined }))
+  setSubmitError('')
+  setSuccessMessage('')
+}
+
+// Create a new author and automatically select the returned ID.
+async function handleCreateAuthor(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault()
+
+  if (isCreatingAuthor) return
+
+  const trimmedName = authorName.trim()
+  const trimmedOrigin = authorOrigin.trim()
+  const trimmedBio = authorBio.trim()
+
+  if (!trimmedName) {
+    setAuthorFormError('Author name is required.')
+    return
+  }
+
+  if (form.authorIds.length >= 20) {
+    setAuthorFormError('You can select a maximum of 20 authors.')
+    return
+  }
+
+  const payload: CreateAuthorDTO = {
+    name: trimmedName,
+    ...(trimmedOrigin ? { origin: trimmedOrigin } : {}),
+    ...(trimmedBio ? { bio: trimmedBio } : {}),
+  }
+
+  setIsCreatingAuthor(true)
+  setAuthorFormError('')
+
+  try {
+    const newAuthor = await createAuthor(payload)
+
+    setAuthors((current) => {
+      // Avoid adding the same author twice.
+      if (current.some((author) => author.id === newAuthor.id)) {
+        return current
+      }
+
+      return [...current, newAuthor]
+    })
+
+    // Automatically select the newly created author's ID.
+    setForm((current) => ({
+      ...current,
+      authorIds: current.authorIds.includes(newAuthor.id)
+        ? current.authorIds
+        : [...current.authorIds, newAuthor.id],
+    }))
+
+    setErrors((current) => ({ ...current, authors: undefined }))
+    setAuthorName('')
+    setAuthorOrigin('')
+    setAuthorBio('')
+    setAuthorSearch('')
+    setIsAuthorModalOpen(false)
+  } catch (error) {
+    setAuthorFormError(getApiErrorMessage(error))
+  } finally {
+    setIsCreatingAuthor(false)
+  }
+}
+
+// Filter the author's list using the search input.
+const filteredAuthors = authors.filter((author) =>
+  author.name.toLowerCase().includes(authorSearch.trim().toLowerCase()),
+)
+
   function updateField(
     field: 'title' | 'description' | 'price' | 'salePrice' | 'language' | 'previewText',
     value: string,
@@ -134,47 +268,6 @@ export default function PublisherCreateBookPage() {
     setErrors((current) => ({ ...current, [field]: undefined }))
     setSubmitError('')
     setSuccessMessage('')
-  }
-
-  function updateAuthor(index: number, value: string) {
-    setForm((current) => ({
-      ...current,
-      authors: current.authors.map((author, authorIndex) =>
-        authorIndex === index ? value : author,
-      ),
-    }))
-
-    setErrors((current) => ({ ...current, authors: undefined }))
-    setSubmitError('')
-    setSuccessMessage('')
-  }
-
-  function addAuthor() {
-    if (form.authors.length >= 20) {
-      setErrors((current) => ({
-        ...current,
-        authors: 'You can add a maximum of 20 authors.',
-      }))
-      return
-    }
-
-    setForm((current) => ({
-      ...current,
-      authors: [...current.authors, ''],
-    }))
-
-    setErrors((current) => ({ ...current, authors: undefined }))
-  }
-
-  function removeAuthor(index: number) {
-    setForm((current) => ({
-      ...current,
-      authors: current.authors.filter(
-        (_, authorIndex) => authorIndex !== index,
-      ),
-    }))
-
-    setErrors((current) => ({ ...current, authors: undefined }))
   }
 
   function toggleCategory(categoryId: string) {
@@ -195,8 +288,6 @@ export default function PublisherCreateBookPage() {
 
     const title = form.title.trim()
     const description = form.description.trim()
-    const authors = form.authors.map((author) => author.trim())
-
     if (!title) {
       nextErrors.title = 'Book title is required.'
     } else if (title.length > 200) {
@@ -209,13 +300,10 @@ export default function PublisherCreateBookPage() {
       nextErrors.description = 'Description cannot exceed 10,000 characters.'
     }
 
-    if (
-      authors.length === 0 ||
-      authors.some((author) => !author)
-    ) {
-      nextErrors.authors = 'Enter a name for every author.'
-    } else if (authors.length > 20) {
-      nextErrors.authors = 'You can add a maximum of 20 authors.'
+    if (form.authorIds.length === 0) {
+      nextErrors.authors = 'Select at least one author.'
+    } else if (form.authorIds.length > 20) {
+      nextErrors.authors = 'You can select a maximum of 20 authors.'
     }
 
     if (form.categoryIds.length === 0) {
@@ -276,7 +364,7 @@ export default function PublisherCreateBookPage() {
     const payload: CreateBookDTO = {
       title: form.title.trim(),
       description: form.description.trim(),
-      authors: form.authors.map((author) => author.trim()),
+      authorIds: form.authorIds,
       categoryIds: form.categoryIds,
       price: Number(form.price),
       language: form.language.trim(),
@@ -459,57 +547,145 @@ export default function PublisherCreateBookPage() {
 
               {/* Authors can be added or removed dynamically. */}
               <div>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <label className={labelClasses}>
-                    Authors <span className="text-error">*</span>
-                  </label>
+              {/* Author selection */}
+              <section className="rounded-2xl border border-border bg-surface p-5 sm:p-7">
+                <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                  <div>
+                    <h2 className="text-lg font-semibold">
+                      Authors <span className="text-error">*</span>
+                    </h2>
+                    <p className="mt-1 text-sm text-secondary">
+                      Select existing authors or create a new one.
+                    </p>
+                  </div>
 
                   <button
                     type="button"
-                    onClick={addAuthor}
-                    disabled={form.authors.length >= 20}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-accent transition hover:bg-background disabled:opacity-50"
+                    onClick={() => {
+                      setAuthorFormError('')
+                      setIsAuthorModalOpen(true)
+                    }}
+                    disabled={form.authorIds.length >= 20}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-accent transition hover:bg-background disabled:opacity-50"
                   >
-                    <Plus className="h-4 w-4" />
-                    Add author
+                    <UserPlus className="h-4 w-4" />
+                    Create new author
                   </button>
                 </div>
 
-                <div className="space-y-3">
-                  {form.authors.map((author, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={author}
-                        onChange={(event) =>
-                          updateAuthor(index, event.target.value)
-                        }
-                        placeholder={`Author ${index + 1} name`}
-                        className={inputClasses}
-                        aria-label={`Author ${index + 1}`}
-                        aria-invalid={Boolean(errors.authors)}
-                      />
+                {/* Search authors */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-secondary" />
 
-                      {form.authors.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeAuthor(index)}
-                          className="rounded-xl border border-border p-3 text-secondary transition hover:bg-background hover:text-error"
-                          aria-label={`Remove author ${index + 1}`}
-                          title="Remove author"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                  <input
+                    type="search"
+                    value={authorSearch}
+                    onChange={(event) => setAuthorSearch(event.target.value)}
+                    placeholder="Search authors by name..."
+                    className={`${inputClasses} pl-10`}
+                  />
                 </div>
 
-                {errors.authors && (
-                  <p className="mt-2 text-sm text-error">
-                    {errors.authors}
+                {isLoadingAuthors ? (
+                  <div className="flex items-center gap-2 py-4 text-sm text-secondary">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Loading authors...
+                  </div>
+                ) : authorError ? (
+                  <div
+                    role="alert"
+                    className="rounded-xl border border-error/20 bg-error/10 p-4 text-sm text-error"
+                  >
+                    <p>{authorError}</p>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setIsLoadingAuthors(true)
+                        setAuthorError('')
+
+                        try {
+                          setAuthors(await getMyAuthors())
+                        } catch (error) {
+                          setAuthorError(getApiErrorMessage(error))
+                        } finally {
+                          setIsLoadingAuthors(false)
+                        }
+                      }}
+                      className="mt-2 inline-flex items-center gap-2 font-medium underline"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Try again
+                    </button>
+                  </div>
+                ) : filteredAuthors.length === 0 ? (
+                  <div className="rounded-xl border border-border p-5 text-center">
+                    <p className="text-sm font-medium">
+                      {authors.length === 0
+                        ? 'You have not created any authors yet.'
+                        : 'No authors match your search.'}
+                    </p>
+                    <p className="mt-1 text-sm text-secondary">
+                      Create a new author to add them to your book.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {filteredAuthors.map((author) => {
+                      const isSelected = form.authorIds.includes(author.id)
+
+                      return (
+                        <label
+                          key={author.id}
+                          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
+                            isSelected
+                              ? 'border-accent bg-background'
+                              : 'border-border hover:bg-background'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleAuthor(author.id)}
+                            className="mt-1 h-4 w-4 accent-current"
+                          />
+
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-medium">{author.name}</span>
+
+                            {author.origin && (
+                              <span className="mt-1 block text-sm text-secondary">
+                                {author.origin}
+                              </span>
+                            )}
+                          </span>
+
+                          {isSelected && (
+                            <CheckCircle className="h-5 w-5 shrink-0 text-accent" />
+                          )}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {form.authorIds.length > 0 && (
+                  <p className="mt-4 text-sm text-secondary">
+                    {form.authorIds.length} author
+                    {form.authorIds.length === 1 ? '' : 's'} selected
                   </p>
                 )}
+
+                {errors.authors && (
+                  <p className="mt-2 text-sm text-error">{errors.authors}</p>
+                )}
+
+                {form.authorIds.length >= 20 && (
+                  <p className="mt-2 text-xs text-secondary">
+                    Maximum of 20 authors reached.
+                  </p>
+                )}
+              </section>
               </div>
             </div>
           </section>
@@ -803,6 +979,129 @@ export default function PublisherCreateBookPage() {
             Your book will be saved as a draft. Creating it does not publish it.
           </p>
         </form>
+        {/* Create author modal         */}
+        {isAuthorModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !isCreatingAuthor) {
+                setIsAuthorModalOpen(false)
+              }
+            }}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-author-title"
+              className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-xl"
+            >
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <h2 id="create-author-title" className="text-xl font-semibold">
+                    Create a new author
+                  </h2>
+                  <p className="mt-1 text-sm text-secondary">
+                    Add an author to your publisher profile.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAuthorModalOpen(false)}
+                  disabled={isCreatingAuthor}
+                  aria-label="Close modal"
+                  className="rounded-lg p-2 text-secondary transition hover:bg-background"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {authorFormError && (
+                <div
+                  role="alert"
+                  className="mb-4 rounded-xl border border-error/20 bg-error/10 p-3 text-sm text-error"
+                >
+                  {authorFormError}
+                </div>
+              )}
+
+              <form onSubmit={handleCreateAuthor} className="space-y-4">
+                <div>
+                  <label htmlFor="authorName" className={labelClasses}>
+                    Author name <span className="text-error">*</span>
+                  </label>
+                  <input
+                    id="authorName"
+                    type="text"
+                    value={authorName}
+                    onChange={(event) => setAuthorName(event.target.value)}
+                    placeholder="Enter author name"
+                    maxLength={150}
+                    className={inputClasses}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="authorOrigin" className={labelClasses}>
+                    Origin
+                  </label>
+                  <input
+                    id="authorOrigin"
+                    type="text"
+                    value={authorOrigin}
+                    onChange={(event) => setAuthorOrigin(event.target.value)}
+                    placeholder="e.g. Kerala, India"
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="authorBio" className={labelClasses}>
+                    Biography
+                  </label>
+                  <textarea
+                    id="authorBio"
+                    rows={4}
+                    value={authorBio}
+                    onChange={(event) => setAuthorBio(event.target.value)}
+                    placeholder="Write a short author biography..."
+                    className={inputClasses}
+                  />
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthorModalOpen(false)}
+                    disabled={isCreatingAuthor}
+                    className="rounded-xl border border-border px-5 py-3 text-sm font-medium transition hover:bg-background disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isCreatingAuthor || !authorName.trim()}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isCreatingAuthor ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Create author
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   )

@@ -1,8 +1,7 @@
-
 export interface CreateBookDTO {
   title: string
   description: string
-  authors: string[]
+  authorIds: string[]
   categoryIds: string[]
   price: number
   salePrice?: number
