@@ -3,11 +3,17 @@ import { Types } from 'mongoose';
 import { IBaseRepository } from './IBaseRepository';
 import { BookDocument, IBook } from '../../models/book/book.model';
 
-export interface IBookRepository
-  extends IBaseRepository<IBook, Partial<IBook>, Partial<IBook>> {
+export interface IBookRepository extends IBaseRepository<
+  IBook,
+  Partial<IBook>,
+  Partial<IBook>
+> {
   findBySlug(slug: string): Promise<BookDocument | null>;
 
-  findByPublisherId(
+  findByPublisherId(publisherId: Types.ObjectId): Promise<BookDocument[]>;
+
+  findByIdAndPublisherId(
+    bookId: Types.ObjectId,
     publisherId: Types.ObjectId,
-  ): Promise<BookDocument[]>;
+  ): Promise<BookDocument | null>;
 }

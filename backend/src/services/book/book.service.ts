@@ -16,18 +16,29 @@ import { NotFoundError } from '../../errors/not-found.error';
 import type { BookDocument } from '../../models/book/book.model';
 import type { IAuthorRepository } from '../../interfaces/repository/IAuthorRepository';
 
+import { IStorageService } from '../../interfaces/service/storage/IStorageService.js';
+
+import { randomUUID } from 'node:crypto';
+
+import type {
+  IGenerateBookAssetUploadUrlDTO,
+  IGenerateBookAssetUploadUrlResponseDTO,
+} from '../../dtos/book-asset.dto.js';
+
+import { BOOK_ASSET_CONFIG } from '../../constants/book-asset.constants.js';
+
 export class BookService implements IBookService {
   constructor(
     private readonly _bookRepository: IBookRepository,
     private readonly _publisherRepository: IPublisherRepository,
     private readonly _authorRepository: IAuthorRepository,
+    private readonly _storageService: IStorageService,
   ) {}
 
   async createBook(
     userId: Types.ObjectId,
     data: ICreateBookDTO,
   ): Promise<BookDocument> {
-
     const publisher = await this._publisherRepository.findByUserId(userId);
 
     if (!publisher) {
@@ -100,10 +111,7 @@ export class BookService implements IBookService {
         : toPaise(data.salePrice, 'Sale price');
 
     // A sale price must be lower than the regular price.
-    if (
-      salePriceInPaise !== undefined &&
-      salePriceInPaise >= priceInPaise
-    ) {
+    if (salePriceInPaise !== undefined && salePriceInPaise >= priceInPaise) {
       throw new BadRequestError(
         'Sale price must be lower than the regular price.',
       );
@@ -112,9 +120,7 @@ export class BookService implements IBookService {
     // Validate category IDs before converting them to ObjectIds.
     const categoryIds = data.categoryIds.map((categoryId) => {
       if (!Types.ObjectId.isValid(categoryId)) {
-        throw new BadRequestError(
-          'One or more category IDs are invalid.',
-        );
+        throw new BadRequestError('One or more category IDs are invalid.');
       }
 
       return new Types.ObjectId(categoryId);
@@ -123,38 +129,27 @@ export class BookService implements IBookService {
     // Validate author IDs before querying MongoDB.
     const authorIds = data.authorIds.map((authorId) => {
       if (!Types.ObjectId.isValid(authorId)) {
-        throw new BadRequestError(
-          'One or more author IDs are invalid.',
-        );
+        throw new BadRequestError('One or more author IDs are invalid.');
       }
 
       return new Types.ObjectId(authorId);
     });
 
     if (authorIds.length === 0) {
-      throw new BadRequestError(
-        'At least one author is required.',
-      );
+      throw new BadRequestError('At least one author is required.');
     }
 
     // Prevent the same author from being associated more than once.
-    const uniqueAuthorIds = new Set(
-      authorIds.map((id) => id.toString()),
-    );
+    const uniqueAuthorIds = new Set(authorIds.map((id) => id.toString()));
 
     if (uniqueAuthorIds.size !== authorIds.length) {
-      throw new BadRequestError(
-        'Duplicate authors are not allowed.',
-      );
+      throw new BadRequestError('Duplicate authors are not allowed.');
     }
 
     // Verify that every author belongs to this publisher.
     const authors = await Promise.all(
       authorIds.map((authorId) =>
-        this._authorRepository.findByIdAndPublisherId(
-          authorId,
-          publisher._id,
-        ),
+        this._authorRepository.findByIdAndPublisherId(authorId, publisher._id),
       ),
     );
 
@@ -172,14 +167,102 @@ export class BookService implements IBookService {
       authorIds,
       categoryIds,
       priceInPaise,
-      ...(salePriceInPaise !== undefined
-        ? { salePriceInPaise }
-        : {}),
+      ...(salePriceInPaise !== undefined ? { salePriceInPaise } : {}),
       language: data.language.trim().toLowerCase(),
       ...(data.previewText !== undefined
         ? { previewText: data.previewText.trim() }
         : {}),
       status: BookStatus.DRAFT,
     });
+  }
+
+  async generateAssetUploadUrl(
+    userId: Types.ObjectId,
+    bookId: string,
+    dto: IGenerateBookAssetUploadUrlDTO,
+  ): Promise<IGenerateBookAssetUploadUrlResponseDTO> {
+    const publisher = await this._publisherRepository.findByUserId(userId);
+
+    if (!publisher) {
+      throw new NotFoundError('Publisher profile not found.');
+    }
+
+    if (
+      publisher.verification.status !== PublisherVerificationStatus.APPROVED
+    ) {
+      throw new ForbiddenError(
+        'Your publisher account must be approved before uploading book assets.',
+      );
+    }
+
+    if (!Types.ObjectId.isValid(bookId)) {
+      throw new BadRequestError('Invalid book ID.');
+    }
+
+    const bookObjectId = new Types.ObjectId(bookId);
+
+    const book = await this._bookRepository.findByIdAndPublisherId(
+      bookObjectId,
+      publisher._id,
+    );
+
+    if (!book) {
+      throw new NotFoundError('Book not found.');
+    }
+    // 5. Only allow asset uploads while the book is a draft or rejected
+    const editableStatuses: BookStatus[] = [
+      BookStatus.DRAFT,
+      BookStatus.REJECTED,
+    ];
+
+    if (!editableStatuses.includes(book.status)) {
+      throw new ForbiddenError(
+        'Book assets can only be modified while the book is in draft or rejected status.',
+      );
+    }
+
+    //  Retrieve the configuration for the requested asset type.
+    const assetConfig = BOOK_ASSET_CONFIG[dto.assetType];
+
+    // 7. Validate the MIME type against the selected asset type.
+    if (!assetConfig.allowedContentTypes.includes(dto.contentType)) {
+      throw new BadRequestError(`Invalid content type for ${dto.assetType}.`);
+    }
+
+    // 8. Get the file extension associated with the validated MIME type.
+    const extension = assetConfig.extensions[dto.contentType];
+
+    if (!extension) {
+      throw new BadRequestError('Unsupported asset file type.');
+    }
+
+    // 9. Generate a unique filename to prevent object-key collisions.
+    const fileName = `${randomUUID()}.${extension}`;
+
+    // 10. Construct the S3 object key.
+    const key = [
+      'publishers',
+      publisher._id.toString(),
+      'books',
+      book._id.toString(),
+      assetConfig.folder,
+      fileName,
+    ].join('/');
+
+    // Generate a temporary URL for direct frontend-to-S3 upload.
+    const expiresIn = 300;
+
+    const uploadUrl = await this._storageService.generateUploadUrl(
+      key,
+      dto.contentType,
+      expiresIn,
+    );
+
+    // Return the temporary URL and permanent object key.
+    return {
+      uploadUrl,
+      key,
+      expiresIn,
+    };
   }
 }

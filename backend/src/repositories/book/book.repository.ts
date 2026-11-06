@@ -13,12 +13,24 @@ export class BookRepository
   }
 
   async findBySlug(slug: string): Promise<BookDocument | null> {
-    return Book.findOne({ slug }).exec();
+    return this._model.findOne({ slug }).exec();
   }
 
   async findByPublisherId(
     publisherId: Types.ObjectId,
   ): Promise<BookDocument[]> {
-    return Book.find({ publisherId }).sort({ createdAt: -1 }).exec();
+    return this._model.find({ publisherId }).sort({ createdAt: -1 }).exec();
+  }
+
+  async findByIdAndPublisherId(
+    bookId: Types.ObjectId,
+    publisherId: Types.ObjectId,
+  ): Promise<BookDocument | null> {
+    return this._model
+      .findOne({
+        _id: bookId,
+        publisherId,
+      })
+      .exec();
   }
 }

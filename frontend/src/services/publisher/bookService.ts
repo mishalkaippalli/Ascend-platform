@@ -21,7 +21,7 @@ export async function createBook(
   data: CreateBookDTO,
 ): Promise<CreateBookResponse['data']> {
   const response = await api.post<CreateBookResponse>(
-    '/publishers/books',
+    '/books/create',
     data,
   )
 

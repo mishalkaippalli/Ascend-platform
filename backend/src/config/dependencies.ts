@@ -40,7 +40,7 @@ import { IBookChapterService } from '../interfaces/service/book/IBookChapterServ
 import { BookChapterService } from '../services/book/book-chapter.service';
 import { BookChapterController } from '../controllers/book-chapter.controller';
 
-import { CategoryRepository} from '../repositories/category/category.repository';
+import { CategoryRepository } from '../repositories/category/category.repository';
 import { ICategoryRepository } from '../interfaces/repository/ICategoryRepository';
 
 import { CategoryService } from '../services/category/category.service';
@@ -55,96 +55,91 @@ import { IAuthorRepository } from '../interfaces/repository/IAuthorRepository';
 import { IAuthorService } from '../interfaces/service/publisher/IAuthorService';
 import { AuthorController } from '../controllers/author.controller';
 
+import { s3Client, s3BucketName } from './s3';
+import { S3StorageService } from '../services/storage/S3StorageService';
+import { IStorageService } from '../interfaces/service/storage/IStorageService';
 
 // --------------------------------------------------
 // Repositories
 // --------------------------------------------------
 
-const userRepository: IUserRepository =
-  new UserRepository();
+const userRepository: IUserRepository = new UserRepository();
 
-const publisherRepository: IPublisherRepository =
-  new PublisherRepository();
+const publisherRepository: IPublisherRepository = new PublisherRepository();
 
-const refreshSessionRepository =
-  new RefreshSessionRepository();
+const refreshSessionRepository = new RefreshSessionRepository();
 
-const bookChapterRepository: IBookChapterRepository =  
+const bookChapterRepository: IBookChapterRepository =
   new BookChapterRepository();
 
-const bookRepository: IBookRepository = 
-  new BookRepository();
+const bookRepository: IBookRepository = new BookRepository();
 
-const categoryRepository: ICategoryRepository = 
-  new CategoryRepository();
+const categoryRepository: ICategoryRepository = new CategoryRepository();
 
-const authorRepository: IAuthorRepository = 
-  new AuthorRepository();
+const authorRepository: IAuthorRepository = new AuthorRepository();
 
 // --------------------------------------------------
 // Shared services / infrastructure
 // --------------------------------------------------
 
-const passwordHasher =
-  new Argon2PasswordHasher();
+const passwordHasher = new Argon2PasswordHasher();
 
-const otpService =
-  new RedisOtpService();
+const otpService = new RedisOtpService();
 
-const emailService =
-  new NodemailerEmailService();
+const emailService = new NodemailerEmailService();
 
-const tokenService =
-  new JwtTokenService();
+const tokenService = new JwtTokenService();
 
-const refreshTokenHasher =
-  new Sha256RefreshTokenHasher();
+const refreshTokenHasher = new Sha256RefreshTokenHasher();
 
-const passwordResetTokenService =
-  new RedisPasswordResetTokenService();
+const passwordResetTokenService = new RedisPasswordResetTokenService();
 
+const storageService: IStorageService = new S3StorageService(
+  s3Client,
+  s3BucketName,
+);
 
 // --------------------------------------------------
 // Application services
 // --------------------------------------------------
 
-const userService =
-  new UserService(userRepository);
+const userService = new UserService(userRepository);
 
-const authService =
-  new AuthService(
-    userRepository,
-    passwordHasher,
-    otpService,
-    emailService,
-    tokenService,
-    refreshSessionRepository,
-    refreshTokenHasher,
-    passwordResetTokenService,
-  );
+const authService = new AuthService(
+  userRepository,
+  passwordHasher,
+  otpService,
+  emailService,
+  tokenService,
+  refreshSessionRepository,
+  refreshTokenHasher,
+  passwordResetTokenService,
+);
 
-const publisherService: IPublisherService =
-  new PublisherService(
-    userRepository,
-    publisherRepository,
-    passwordHasher,
-    otpService,
-    emailService,
-  );
+const publisherService: IPublisherService = new PublisherService(
+  userRepository,
+  publisherRepository,
+  passwordHasher,
+  otpService,
+  emailService,
+);
 
-const bookChapterService: IBookChapterService =
-  new BookChapterService(bookChapterRepository);
+const bookChapterService: IBookChapterService = new BookChapterService(
+  bookChapterRepository,
+);
 
 const bookService: IBookService = new BookService(
   bookRepository,
   publisherRepository,
   authorRepository,
+  storageService,
 );
 
-const categoryService: ICategoryService = 
-  new CategoryService(categoryRepository);
+const categoryService: ICategoryService = new CategoryService(
+  categoryRepository,
+);
 
-  const authorService: IAuthorService = new AuthorService(
+const authorService: IAuthorService = new AuthorService(
   authorRepository,
   publisherRepository,
 );
@@ -152,37 +147,28 @@ const categoryService: ICategoryService =
 // Controllers
 // --------------------------------------------------
 
-export const authController =
-  new AuthController(authService);
+export const authController = new AuthController(authService);
 
-export const userController =
-  new UserController(userService);
+export const userController = new UserController(userService);
 
-  export const publisherController =
-  new PublisherController(publisherService);
+export const publisherController = new PublisherController(publisherService);
 
-  export const bookChapterController =
-  new BookChapterController(bookChapterService);
+export const bookChapterController = new BookChapterController(
+  bookChapterService,
+);
 
-  export const bookController = 
-  new BookController(bookService);
+export const bookController = new BookController(bookService);
 
-  export const categoryController = 
-  new CategoryController(categoryService);
+export const categoryController = new CategoryController(categoryService);
 
-  export const authorController = new AuthorController(authorService);
+export const authorController = new AuthorController(authorService);
 
 // --------------------------------------------------
 // Middleware
 // --------------------------------------------------
 
-const authenticateMiddleware =
-  new AuthenticateMiddleware(tokenService);
+const authenticateMiddleware = new AuthenticateMiddleware(tokenService);
 
-const authorizationMiddleware =
-  new AuthorizationMiddleware();
+const authorizationMiddleware = new AuthorizationMiddleware();
 
-export {
-  authenticateMiddleware,
-  authorizationMiddleware,
-};
+export { authenticateMiddleware, authorizationMiddleware };
